@@ -4,6 +4,9 @@ extern crate dotenv;
 use actix_web::HttpRequest;
 use mysql::*;
 
+mod websockets;
+use websockets::websocket_handler;
+
 // use yew::Renderer;
 use yew::prelude::*;
 use yew::ServerRenderer;
@@ -162,8 +165,13 @@ async fn main() -> std::io::Result<()> {
                         App:: new()
                             .wrap( logger )
                             .wrap( cors )
-                            .app_data( Data::new(mysql_connection_pool.clone()))
 
+
+                            .app_data( Data::new(mysql_connection_pool.clone()))
+                            .route(
+                                "/_ws",
+                                actix_web::web::get().to(websocket_handler)
+                            )
                             // Authentication Handlers
                             .service( auth_api_login_for_token )
                             .service( auth_get_user_data )
