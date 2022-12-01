@@ -381,6 +381,40 @@ fn _make_user_from_row( mut row: Row ) -> User {
 
     let login_tokens_string: String = row.take("login_tokens").unwrap();
     let login_tokens: Vec<LoginToken> = serde_json::from_str( login_tokens_string.as_str() ).unwrap();
+
+    let mut created_by = 0;
+    let created_opt= row.take_opt("created_by").unwrap();
+    match created_opt {
+
+        Ok( val ) => {created_by = val;}
+        Err( _ ) => {}
+
+    }
+    let mut updated_by = 0;
+    let updated_opt = row.take_opt("updated_by").unwrap();
+    match updated_opt {
+
+        Ok( val ) => {updated_by = val;}
+        Err( _ ) => {}
+
+    }
+    let mut deleted_by = 0;
+    let deleted_opt = row.take_opt("deleted_by").unwrap();
+    match deleted_opt {
+
+        Ok( val ) => {deleted_by = val;}
+        Err( _ ) => {}
+
+    }
+
+    let mut share_bio = "".to_string();
+    let share_bio_opt = row.take_opt("share_bio").unwrap();
+    match share_bio_opt {
+
+        Ok( val ) => {share_bio = val; }
+        Err( _ ) => {}
+
+    }
     let user = User{
         activated: row.take("activated").unwrap(),
         api_key: row.take("api_key").unwrap(),
@@ -388,11 +422,11 @@ fn _make_user_from_row( mut row: Row ) -> User {
         banned_by: row.take("banned_by").unwrap(),
         banned_on: mysql_datetime_to_chrono_utc(banned_on_string), // row.take("banned_on").unwrap(),
         banned_reason: row.take("banned_reason").unwrap(),
-        created_by: row.take("created_by").unwrap(),
+        created_by: created_by,
         created_on: mysql_datetime_to_chrono_utc(created_on_string), // created_on_dtfo.with_timezone( &Utc),
         default_username: row.take("default_username").unwrap(),
         deleted: row.take("deleted").unwrap(),
-        deleted_by: row.take("deleted_by").unwrap(),
+        deleted_by: deleted_by,
         deleted_on: mysql_datetime_to_chrono_utc(deleted_on_string), // row.take("deleted_on").unwrap(),
         discord_id: row.take("discord_id").unwrap(),
         email: row.take("email").unwrap(),
@@ -418,7 +452,7 @@ fn _make_user_from_row( mut row: Row ) -> User {
         premium_expires: mysql_datetime_to_chrono_utc(premium_expires_string), // row.take("premium_expires").unwrap(),
         profile_image: row.take("profile_image").unwrap(),
         reset_password_expire: mysql_datetime_to_chrono_utc(reset_password_expire_string), // row.take("reset_password_expire").unwrap(),
-        share_bio: row.take("share_bio").unwrap(),
+        share_bio: share_bio,
         share_display_name: row.take("share_display_name").unwrap(),
         share_show_profile_image: row.take("share_show_profile_image").unwrap(),
         show_user_page: row.take("show_user_page").unwrap(),
@@ -426,7 +460,7 @@ fn _make_user_from_row( mut row: Row ) -> User {
         timezone: row.take("timezone").unwrap(),
         turn_off_advance_limits: row.take("turn_off_advance_limits").unwrap(),
         twitter: row.take("twitter").unwrap(),
-        updated_by: row.take("updated_by").unwrap(),
+        updated_by: updated_by,
         // updated_on: Central.from_local_datetime(&updated_on).with_timezone(&Utc).clone(),
         // updated_on: DateTime::<Utc>::parse_from_rfc3339(&updated_on).clone(),
         updated_on: mysql_datetime_to_chrono_utc(updated_on_string), // updated_on_dtfo.with_timezone( &Utc),
