@@ -4,8 +4,8 @@ extern crate dotenv;
 use actix_web::HttpRequest;
 use mysql::*;
 
-mod websockets;
-use websockets::websocket_handler;
+mod web_sockets;
+use web_sockets::websocket_handler;
 
 // use yew::Renderer;
 use yew::prelude::*;
