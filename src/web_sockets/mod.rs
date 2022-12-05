@@ -20,6 +20,7 @@ pub struct MyWs {
     user: Option<PublicUserInfo>,
     pool: Data<Pool>,
     req: HttpRequest,
+    room_id: String,
 }
 
 impl Actor for MyWs {
@@ -92,6 +93,7 @@ pub async fn websocket_handler(
             user: None,
             pool: pool,
             req: req.clone(),
+            room_id: "".to_owned(),
         },
         &req,
         stream

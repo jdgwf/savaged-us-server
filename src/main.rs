@@ -4,6 +4,7 @@ extern crate dotenv;
 use actix_web::HttpRequest;
 use mysql::*;
 
+mod utils;
 mod web_sockets;
 use web_sockets::websocket_handler;
 
@@ -28,6 +29,7 @@ use api::auth::{
     auth_get_user_data,
     auth_token_remove,
     auth_token_update_name,
+    auth_update_settings,
 };
 use api::notifications::{
     notifications_get,
@@ -178,6 +180,7 @@ async fn main() -> std::io::Result<()> {
 
                             // User Token Administration
                             .service( auth_token_remove )
+                            .service( auth_update_settings )
                             .service( auth_token_update_name )
 
                             // User Notification Page Handlers

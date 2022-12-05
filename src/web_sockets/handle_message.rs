@@ -4,7 +4,8 @@ use savaged_libs::websocket_message::{
     WebsocketMessageType,
 };
 use super::MyWs;
-use crate::db::users::get_user_from_login_token;
+use crate::{db::users::get_user_from_login_token, utils::send_standard_email};
+use tokio::task;
 
 pub fn handle_message(
     msg: WebSocketMessage,
@@ -18,26 +19,48 @@ pub fn handle_message(
             println!("handle_message Online {:?}", msg);
             // update_global_vars.emit( global_vars );
 
-            let pong: WebSocketMessage = WebSocketMessage {
+            let mut message_to_be_send: WebSocketMessage = WebSocketMessage {
                 kind: WebsocketMessageType::Online,
-                token: "".to_owned(),
+                token: None,
                 user: None,
+                payload: None,
             };
-            send_message( pong, ctx );
 
-            if ws.user == None && !msg.token.is_empty() {
-                let user_option = get_user_from_login_token(ws.pool.clone(), msg.token, ws.req.clone());
+            // send_message( message_to_be_send, ctx );
+
+            if ws.user == None && msg.token != None {
+                let user_option = get_user_from_login_token(
+                    ws.pool.clone(),
+                    msg.token,
+                    ws.req.clone()
+                );
                 match user_option {
                     Some( user ) => {
                         ws.user = Some(user.get_public_info());
 
-                        println!("Online {:?}", ws.user);
+                        message_to_be_send.user = Some(user.get_public_info());
+                        println!("** Online {:?}", ws.user);
+
+                        // let pool = ws.pool.clone();
+                        // let user_id = user.id;
+                        // task::spawn_local(async move {
+                        //     println!("** Moo?");
+                        //     send_standard_email(
+                        //         pool,
+                        //         user_id,
+                        //         "Helloooooo".to_string(),
+                        //         r#"Don't be such a fart face <strong>Strong text</strong>"#.to_string()
+                        //     ).await;
+                        //     }
+                        // );
                     }
                     None => {
 
                     }
                 }
             }
+
+            send_message( message_to_be_send, ctx );
 
             // ctx.text(msg);
         }
@@ -48,12 +71,13 @@ pub fn handle_message(
             // update_global_vars.emit( global_vars );
 
             // ctx.text(msg);
-            let pong: WebSocketMessage = WebSocketMessage {
+            let message_to_be_send: WebSocketMessage = WebSocketMessage {
                 kind: WebsocketMessageType::Online,
-                token: "".to_owned(),
+                token: None,
                 user: None,
+                payload: None,
             };
-            send_message( pong, ctx );
+            send_message( message_to_be_send, ctx );
         }
 
         _ => {

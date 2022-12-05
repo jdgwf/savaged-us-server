@@ -24,17 +24,17 @@ pub async fn notifications_get(
     request: HttpRequest,
 ) -> Json<Vec<Notification>> {
     // println!("notifications_get");
-    let mut login_token = "".to_owned();
-    let mut api_key = "".to_owned();
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
     match &form.login_token {
         Some( val ) => {
-            login_token = val.to_owned();
+            login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
         Some( val ) => {
-            api_key = val.to_owned();
+            api_key = Some(val.to_owned());
         }
         None => {}
     }
@@ -44,12 +44,12 @@ pub async fn notifications_get(
         api_key,
         login_token,
         request,
-    ).await;
+    );
 
     match current_user {
         Some( user ) => {
 
-            return Json( _get_notifications_for_user( pool.clone(), user.id ).await );
+            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
         }
         None => {
             return Json( Vec::new() );
@@ -72,18 +72,18 @@ pub async fn notifications_set_deleted(
     request: HttpRequest,
 ) -> Json<Vec<Notification>> {
     // println!("notifications_set_deleted");
-    let mut login_token = "".to_owned();
-    let mut api_key = "".to_owned();
-    let mut notification_id: u32 = 0;
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
+    let mut notification_id = 0;
     match &form.login_token {
         Some( val ) => {
-            login_token = val.to_owned();
+            login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
         Some( val ) => {
-            api_key = val.to_owned();
+            api_key = Some(val.to_owned());
         }
         None => {}
     }
@@ -101,7 +101,7 @@ pub async fn notifications_set_deleted(
         api_key,
         login_token,
         request,
-    ).await;
+    );
 
     match current_user {
         Some( user ) => {
@@ -124,12 +124,12 @@ pub async fn notifications_set_deleted(
                     ).unwrap();
                     match notifications_result {
                         Some(_ ) => {
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ).await );
+                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ).await );
+                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
                         }
                     }
                 }
@@ -152,19 +152,19 @@ pub async fn notifications_set_read(
     request: HttpRequest,
 ) -> Json<Vec<Notification>> {
     // println!("notifications_set_read");
-    let mut login_token = "".to_owned();
-    let mut api_key = "".to_owned();
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
     let mut notification_id: u32 = 0;
     let mut read: bool = true;
     match &form.login_token {
         Some( val ) => {
-            login_token = val.to_owned();
+            login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
         Some( val ) => {
-            api_key = val.to_owned();
+            api_key = Some(val.to_owned());
         }
         None => {}
     }
@@ -193,12 +193,13 @@ pub async fn notifications_set_read(
         None => {}
     }
 
+
     let current_user = get_remote_user(
         pool.clone(),
         api_key,
         login_token,
         request,
-    ).await;
+    );
 
     match current_user {
         Some( user ) => {
@@ -223,12 +224,12 @@ pub async fn notifications_set_read(
                     ).unwrap();
                     match notifications_result {
                         Some( _ ) => {
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ).await );
+                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ).await );
+                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
                         }
                     }
                 }
@@ -252,18 +253,17 @@ pub async fn notifications_set_all_read(
     request: HttpRequest,
 ) -> Json<Vec<Notification>> {
     // println!("notifications_set_read");
-    let mut login_token = "".to_owned();
-    let mut api_key = "".to_owned();
-
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
     match &form.login_token {
         Some( val ) => {
-            login_token = val.to_owned();
+            login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
         Some( val ) => {
-            api_key = val.to_owned();
+            api_key = Some(val.to_owned());
         }
         None => {}
     }
@@ -273,7 +273,7 @@ pub async fn notifications_set_all_read(
         api_key,
         login_token,
         request,
-    ).await;
+    );
 
     match current_user {
         Some( user ) => {
@@ -292,12 +292,12 @@ pub async fn notifications_set_all_read(
                     ).unwrap();
                     match notifications_result {
                         Some( _ ) => {
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ).await );
+                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ).await );
+                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
                         }
                     }
                 }
@@ -314,7 +314,7 @@ pub async fn notifications_set_all_read(
     }
 }
 
-async fn _get_notifications_for_user(
+fn _get_notifications_for_user(
     pool: Data<Pool>,
     current_user_id: u32,
 ) -> Vec<Notification> {
@@ -384,18 +384,17 @@ pub async fn notifications_delete_basic_admin(
     request: HttpRequest,
 ) -> Json<Vec<Notification>> {
     // println!("notifications_set_read");
-    let mut login_token = "".to_owned();
-    let mut api_key = "".to_owned();
-
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
     match &form.login_token {
         Some( val ) => {
-            login_token = val.to_owned();
+            login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
         Some( val ) => {
-            api_key = val.to_owned();
+            api_key = Some(val.to_owned());
         }
         None => {}
     }
@@ -405,7 +404,7 @@ pub async fn notifications_delete_basic_admin(
         api_key,
         login_token,
         request,
-    ).await;
+    );
 
     match current_user {
         Some( user ) => {
@@ -436,12 +435,12 @@ pub async fn notifications_delete_basic_admin(
                     ).unwrap();
                     match notifications_result {
                         Some( _ ) => {
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ).await );
+                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ).await );
+                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
                         }
                     }
                 }

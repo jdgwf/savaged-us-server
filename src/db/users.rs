@@ -1,8 +1,9 @@
-use sha2::{ Sha224, Digest};
+
 use mysql::*;
 use mysql::prelude::*;
 use chrono::prelude::*;
 use crate::db::utils::mysql_datetime_to_chrono_utc;
+use crate::utils::encrypt_password;
 
 use actix_web::HttpRequest;
 use actix_web:: {
@@ -14,14 +15,14 @@ use actix_web:: {
 use savaged_libs::user::{ User, LoginToken };
 use uuid::Uuid;
 
-pub async fn create_login_token(
+pub fn create_login_token(
     pool: Data<Pool>,
     user_id: u32,
     browser: String,
     ip_address: String,
 ) -> Option<String> {
 
-    let user = get_user(pool.clone(), user_id).await.unwrap();
+    let user = get_user(pool.clone(), user_id).unwrap();
 
     let mut login_tokens = user.login_tokens;
 
@@ -65,7 +66,7 @@ pub async fn create_login_token(
     return None;
 }
 
-pub async fn update_user_login_tokens(
+pub fn update_user_login_tokens(
     pool: Data<Pool>,
     user_id: u32,
     login_tokens: Vec<LoginToken>,
@@ -90,7 +91,7 @@ pub async fn update_user_login_tokens(
     return None;
 }
 
-pub async fn get_user(
+pub fn get_user(
     pool: Data<Pool>,
     user_id: u32
 ) -> Option<User> {
@@ -127,34 +128,39 @@ pub async fn get_user(
 
 pub fn get_user_from_login_token(
     pool: Data<Pool>,
-    token: String,
+    token: Option<String>,
     _request: HttpRequest,
 ) -> Option<User> {
 
     match pool.get_conn() {
         Ok( mut conn) => {
 
-            let token = token.clone();
-            let found_user_result: Option<Row> = conn.exec_first(
-                "SELECT * FROM `users` where (`version_of` < 1 and `deleted` < 1 and `activated` > 0) and (
-
-                `login_tokens` like :token
-
-                ) limit 1",
-                params!{ "token" => "%".to_owned() + &token + &"%".to_owned()}
-            ).unwrap();
-            match found_user_result {
-                Some(  row ) => {
-
-                    let user = _make_user_from_row( row );
-                    return Some(user);
-                }
-                None => {
+            if token != None {
+                let token = token.unwrap().clone();
+                if token.len() < 20 {
                     return None;
                 }
-                // Err( err ) => {
-                //     println!("login_for_token Error 1 {}", err );
-                // }
+                let found_user_result: Option<Row> = conn.exec_first(
+                    "SELECT * FROM `users` where (`version_of` < 1 and `deleted` < 1 and `activated` > 0) and (
+
+                    `login_tokens` like :token
+
+                    ) limit 1",
+                    params!{ "token" => "%".to_owned() + &token + &"%".to_owned()}
+                ).unwrap();
+                match found_user_result {
+                    Some(  row ) => {
+
+                        let user = _make_user_from_row( row );
+                        return Some(user);
+                    }
+                    None => {
+                        return None;
+                    }
+                    // Err( err ) => {
+                    //     println!("login_for_token Error 1 {}", err );
+                    // }
+                }
             }
 
         }
@@ -166,7 +172,7 @@ pub fn get_user_from_login_token(
     return None;
 }
 
-pub async fn get_user_from_api_key(
+pub fn get_user_from_api_key(
     pool: Data<Pool>,
     api_key: String,
     _request: HttpRequest,
@@ -206,10 +212,10 @@ pub async fn get_user_from_api_key(
     return None;
 }
 
-pub async fn get_remote_user(
+pub fn get_remote_user(
     pool: Data<Pool>,
-    api_key: String,
-    token: String,
+    api_key: Option<String>,
+    token: Option<String>,
     request: HttpRequest,
 ) -> Option<User> {
 
@@ -257,15 +263,20 @@ pub async fn get_remote_user(
         real_remote_addy = x_forwarded_for;
     }
 
-    if !token.is_empty() {
-        let token_user_result = get_user_from_login_token(pool.clone(), token.to_owned(), request.clone());
+    if token != None && !token.as_ref().unwrap().is_empty() {
+        let token_user_result = get_user_from_login_token(
+            pool.clone(),
+            token.to_owned(),
+            request.clone()
+        );
         match token_user_result {
             Some( user ) => {
+
                 return Some(
                     _update_user_last_seen(
                         pool.clone(),
                         user.clone(),
-                        token.to_owned(),
+                        token.unwrap().to_owned(),
                         user_agent.to_owned(),
                         real_remote_addy.to_owned()
                     )
@@ -276,8 +287,12 @@ pub async fn get_remote_user(
             }
         }
     } else {
-        if !api_key.is_empty() {
-            let api_key_result = get_user_from_api_key(pool.clone(), api_key.to_owned(), request.clone()).await;
+        if api_key != None && !api_key.as_ref().unwrap().is_empty() {
+            let api_key_result = get_user_from_api_key(
+                pool.clone(),
+                api_key.unwrap().to_owned(),
+                request.clone()
+            );
             match api_key_result {
                 Some( user ) => {
 
@@ -285,7 +300,7 @@ pub async fn get_remote_user(
                             _update_user_last_seen(
                             pool.clone(),
                             user.clone(),
-                            token.to_owned(),
+                            token.unwrap().to_owned(),
                             user_agent.to_owned(),
                             real_remote_addy.to_owned()
                         )
@@ -479,31 +494,25 @@ pub struct LoginResult {
     pub banned_reason: String,
     pub error: String,
 }
-pub async fn log_user_in(
+pub fn log_user_in(
     pool: Data<Pool>,
     email: String,
     password: String,
 ) -> LoginResult {
 
-    let mut sha_secret_key = "".to_owned();
-    match std::env::var("SHA_SECRET_KEY") {
-        Ok( val ) => {
-            sha_secret_key = val.parse().unwrap();
-        }
-        Err( _ ) => {
 
-        }
-    }
 
     // println!("email {}", form.email.to_owned() );
     // println!("sha_secret_key {}", sha_secret_key.to_owned() );
     // println!("password {}", password.to_owned() );
 
-    let mut hasher = Sha224::new();
-    hasher.update( password.to_owned());
-    hasher.update( sha_secret_key.to_owned() );
-    let data = hasher.finalize();
-    let encrypted_pass= format!("b'{}'", base64::encode(data) );
+    // let mut hasher = Sha224::new();
+    // hasher.update( password.to_owned());
+    // hasher.update( sha_secret_key.to_owned() );
+    // let data = hasher.finalize();
+    // let encrypted_pass= format!("b'{}'", base64::encode(data) );
+
+    let encrypted_pass = encrypt_password( password );
 
     let mut return_value = LoginResult {
         user_id: 0,

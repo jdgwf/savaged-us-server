@@ -1,4 +1,4 @@
-use mysql::*;
+use mysql::Pool;
 
 use actix_web:: {
     get,
@@ -15,6 +15,6 @@ use super::super::db::banners::{
 pub async fn banners_get(
     pool: Data<Pool>,
 ) -> Json<Vec<Banner>> {
-    return actix_web::web::Json(get_banners( pool ).await);
+    return actix_web::web::Json(get_banners( pool ));
 }
 

@@ -8,7 +8,7 @@ use actix_web:: {
 };
 use savaged_libs::banner::{ Banner };
 
-pub async fn get_banners(
+pub fn get_banners(
     pool: Data<Pool>,
 ) -> Vec<Banner> {
     match pool.get_conn() {

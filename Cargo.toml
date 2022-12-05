@@ -32,3 +32,5 @@ savaged-libs = { path="../savaged-libs" }
 base64 = "^0.13.1"
 chrono-tz = "0.8.0"
 # futures = "^0.1.22"
+lettre = "0.10"
+voca_rs = "1.15.2"
