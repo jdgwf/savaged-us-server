@@ -125,7 +125,7 @@ pub async fn get_user(
     return None;
 }
 
-pub async fn get_user_from_login_token(
+pub fn get_user_from_login_token(
     pool: Data<Pool>,
     token: String,
     _request: HttpRequest,
@@ -258,7 +258,7 @@ pub async fn get_remote_user(
     }
 
     if !token.is_empty() {
-        let token_user_result = get_user_from_login_token(pool.clone(), token.to_owned(), request.clone()).await;
+        let token_user_result = get_user_from_login_token(pool.clone(), token.to_owned(), request.clone());
         match token_user_result {
             Some( user ) => {
                 return Some(

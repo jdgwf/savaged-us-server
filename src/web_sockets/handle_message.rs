@@ -4,10 +4,12 @@ use savaged_libs::websocket_message::{
     WebsocketMessageType,
 };
 use super::MyWs;
+use crate::db::users::get_user_from_login_token;
 
 pub fn handle_message(
     msg: WebSocketMessage,
     ctx: &mut ws::WebsocketContext<MyWs>,
+    ws: &mut MyWs,
 ) {
 
 
@@ -23,11 +25,26 @@ pub fn handle_message(
             };
             send_message( pong, ctx );
 
+            if ws.user == None && !msg.token.is_empty() {
+                let user_option = get_user_from_login_token(ws.pool.clone(), msg.token, ws.req.clone());
+                match user_option {
+                    Some( user ) => {
+                        ws.user = Some(user.get_public_info());
+
+                        println!("Online {:?}", ws.user);
+                    }
+                    None => {
+
+                    }
+                }
+            }
+
             // ctx.text(msg);
         }
 
         WebsocketMessageType::Offline => {
             println!("handle_message Offline {:?}", msg);
+            println!("Offline {:?}", ws.user);
             // update_global_vars.emit( global_vars );
 
             // ctx.text(msg);
