@@ -2,6 +2,7 @@ mod api;
 mod db;
 extern crate dotenv;
 use actix_web::HttpRequest;
+use actix_web::web::JsonConfig;
 use mysql::*;
 
 mod utils;
@@ -30,6 +31,10 @@ use api::auth::{
     auth_token_remove,
     auth_token_update_name,
     auth_update_settings,
+
+};
+use api::saves::{
+    auth_get_user_saves,
 };
 use api::notifications::{
     notifications_get,
@@ -38,6 +43,12 @@ use api::notifications::{
     notifications_delete_basic_admin,
     notifications_set_all_read,
 };
+
+use api::data::chargen_data::{
+    hindrances_get,
+    chargen_data_get,
+};
+use api::data::books::books_get;
 
 use api::banners::{
     banners_get,
@@ -63,6 +74,7 @@ async fn main() -> std::io::Result<()> {
         "/tech",
         "/todos",
         "/register",
+        "/playground",
         "/login",
         "/forgot-password",
 
@@ -78,8 +90,7 @@ async fn main() -> std::io::Result<()> {
 
     dotenv().ok();
 
-    std::env::set_var( "RUST_LOG", "debug");
-    std::env::set_var( "RUST_BACKTRACE", "1");
+
 
     let mut serve_port = 3000;
     match std::env::var("PORT") {
@@ -167,7 +178,7 @@ async fn main() -> std::io::Result<()> {
                         App:: new()
                             .wrap( logger )
                             .wrap( cors )
-
+                            // .app_data(ApiError::json_error(JsonConfig::default()))
 
                             .app_data( Data::new(mysql_connection_pool.clone()))
                             .route(
@@ -177,6 +188,9 @@ async fn main() -> std::io::Result<()> {
                             // Authentication Handlers
                             .service( auth_api_login_for_token )
                             .service( auth_get_user_data )
+
+                            // Saves Handlers
+                            .service( auth_get_user_saves )
 
                             // User Token Administration
                             .service( auth_token_remove )
@@ -189,6 +203,12 @@ async fn main() -> std::io::Result<()> {
                             .service( notifications_get )
                             .service( notifications_delete_basic_admin )
                             .service( notifications_set_all_read )
+
+
+                            // Data Endpoints
+                            .service( hindrances_get )
+                            .service( books_get )
+                            .service( chargen_data_get )
 
                             // get banners API
                             .service( banners_get )

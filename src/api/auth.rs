@@ -1,6 +1,7 @@
 // use mysql::*;
 // use mysql::prelude::*;
 use mysql::Pool;
+use savaged_libs::save_db_row::SaveDBRow;
 use std::fs;
 use std::path;
 // use chrono::DateTime;
@@ -24,6 +25,7 @@ use actix_web:: {
     // http::{header::ContentType, StatusCode }
 };
 use actix_web::HttpRequest;
+use crate::db::saves::get_user_saves;
 use crate::utils::encrypt_password;
 
 use super::super::db::users::{
@@ -127,7 +129,9 @@ pub async fn auth_api_login_for_token(
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct ApiKeyOrToken {
+    #[serde(default)]
     pub api_key: Option<String>,
+    #[serde(default)]
     pub login_token: Option<String>,
 }
 
@@ -295,11 +299,11 @@ pub async fn auth_update_settings(
             let user_data: Result<User, serde_json::Error> = serde_json::from_str( &form.current_user );
             match user_data {
                 Ok(mut user_settings) => {
-                    println!("auth_update_settings() user found!");
-                    println!("auth_update_settings() user_data {:?}", user_settings);
-                    println!("auth_update_settings() form.password {:?}", form.password);
-                    println!("auth_update_settings() form.repeat_password {:?}", form.repeat_password);
-                    println!("auth_update_settings() form.remove_image {:?}", form.remove_image);
+                    // println!("auth_update_settings() user found!");
+                    // println!("auth_update_settings() user_data {:?}", user_settings);
+                    // println!("auth_update_settings() form.password {:?}", form.password);
+                    // println!("auth_update_settings() form.repeat_password {:?}", form.repeat_password);
+                    // println!("auth_update_settings() form.remove_image {:?}", form.remove_image);
 
                                 // Override any potential hacker variables in POST
                     user_settings.is_premium = user.is_premium;

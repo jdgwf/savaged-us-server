@@ -17,7 +17,7 @@ use savaged_libs::notification::{ Notification };
 use actix_web::HttpRequest;
 use super::auth::ApiKeyOrToken;
 
-#[post("/_api/auth/notifications-get")]
+#[post("/_api/notifications/get")]
 pub async fn notifications_get(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
@@ -65,7 +65,7 @@ pub struct NotificationForm {
     pub read: Option<String>,
 }
 
-#[post("/_api/auth/notifications-set-deleted")]
+#[post("/_api/notifications/set-deleted")]
 pub async fn notifications_set_deleted(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
@@ -145,7 +145,7 @@ pub async fn notifications_set_deleted(
     }
 }
 
-#[post("/_api/auth/notifications-set-read")]
+#[post("/_api/notifications/set-read")]
 pub async fn notifications_set_read(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
@@ -246,7 +246,7 @@ pub async fn notifications_set_read(
     }
 }
 
-#[post("/_api/auth/notifications-set-all-read")]
+#[post("/_api/notifications/set-all-read")]
 pub async fn notifications_set_all_read(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
@@ -377,7 +377,7 @@ fn _get_notifications_for_user(
     }
 }
 
-#[post("/_api/auth/notifications-delete-basic-admin")]
+#[post("/_api/notifications/delete-basic-admin")]
 pub async fn notifications_delete_basic_admin(
     pool: Data<Pool>,
     form: Json<NotificationForm>,

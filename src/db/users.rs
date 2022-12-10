@@ -300,7 +300,7 @@ pub fn get_remote_user(
                             _update_user_last_seen(
                             pool.clone(),
                             user.clone(),
-                            token.unwrap().to_owned(),
+                            "".to_owned(),
                             user_agent.to_owned(),
                             real_remote_addy.to_owned()
                         )

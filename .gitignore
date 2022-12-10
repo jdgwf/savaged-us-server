@@ -1,4 +1,5 @@
-/target
-/public
+debug/*
+target/*
+src/target
 public/*
 public

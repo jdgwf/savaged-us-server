@@ -11,7 +11,7 @@ use super::super::db::banners::{
     get_banners,
 };
 
-#[get("/_api/banners-get")]
+#[get("/_api/banners/get")]
 pub async fn banners_get(
     pool: Data<Pool>,
 ) -> Json<Vec<Banner>> {
