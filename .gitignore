@@ -4,3 +4,4 @@ src/target
 public/*
 public
 .env
+Cargo.lock
