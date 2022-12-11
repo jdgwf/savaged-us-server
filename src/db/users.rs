@@ -132,14 +132,26 @@ pub fn get_user_from_login_token(
     _request: HttpRequest,
 ) -> Option<User> {
 
+    match &token {
+        Some( token_match ) => {
+            // Login Tokens are at least 75 characters longs
+            if token_match.len() < 75 {
+                println!("get_user_from_login_token token length too small!");
+                return None;
+            }
+        }
+        None => {
+            println!("get_user_from_login_token no token provided!");
+            return None;
+        }
+    }
+
     match pool.get_conn() {
         Ok( mut conn) => {
 
             if token != None {
                 let token = token.unwrap().clone();
-                if token.len() < 20 {
-                    return None;
-                }
+
                 let found_user_result: Option<Row> = conn.exec_first(
                     "SELECT * FROM `users` where (`version_of` < 1 and `deleted` < 1 and `activated` > 0) and (
 

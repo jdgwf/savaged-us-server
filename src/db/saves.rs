@@ -31,7 +31,6 @@ pub fn get_user_saves(
         deleted_on,
         deleted_by,
 
-        -- session_id,
         name,
         sort_order,
         type,
@@ -39,7 +38,6 @@ pub fn get_user_saves(
         export_generic_json,
         share_html,
 
-        -- setting_name,
         shareurl,
         short_desc,
 
@@ -59,9 +57,6 @@ pub fn get_user_saves(
         co_owner,
         co_owner_folder
 
-        -- co_owner_public,
-        -- created_by_public,
-        -- updated_by_public
 
 
         from saves
@@ -77,7 +72,7 @@ pub fn get_user_saves(
     let data_params = params!{ "user_id" => user_id};
     // let data_params = params!{ "1" => "1"};
 
-    println!("data_query {}", &data_query);
+    // println!("data_query {}", &data_query);
     match pool.get_conn() {
         Ok( mut conn) => {
 
@@ -121,8 +116,31 @@ fn _make_save_from_row(
     let mut export_generic_json_send = "".to_owned();
     let mut export_share_html = "".to_owned();
     if with_cached_data {
-        export_generic_json_send = row.take("export_generic_json").unwrap();
-        export_share_html = row.take("share_html").unwrap();
+        let export_generic_json = row.take_opt("export_generic_json");
+        match export_generic_json {
+            Some( val_option ) => {
+                match val_option {
+                    Ok( val ) => {
+                        export_generic_json_send = val;
+                    }
+                    Err ( _) => {}
+                }
+            }
+            None => {}
+        }
+
+        let share_html_opt = row.take_opt("share_html");
+        match share_html_opt {
+            Some( val_option ) => {
+                match val_option {
+                    Ok( val ) => {
+                        export_share_html = val;
+                    }
+                    Err ( _) => {}
+                }
+            }
+            None => {}
+        }
     }
 
     let mut created_by = 0;

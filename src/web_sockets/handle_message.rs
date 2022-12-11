@@ -4,7 +4,7 @@ use savaged_libs::websocket_message::{
     WebsocketMessageType,
 };
 use super::MyWs;
-use crate::{db::users::get_user_from_login_token, utils::send_standard_email};
+use crate::{db::{users::get_user_from_login_token, chargen_data::get_chargen_data, saves::get_user_saves}, utils::send_standard_email};
 use tokio::task;
 
 pub fn handle_message(
@@ -17,10 +17,115 @@ pub fn handle_message(
     match msg.kind {
 
         WebsocketMessageType::Saves => {
-            println!("handle_message Online {:?}", msg);
+            println!("handle_message Saves {:?}", msg);
+
+            let mut message_to_be_send: WebSocketMessage = WebSocketMessage {
+                kind: WebsocketMessageType::Saves,
+                token: None,
+                user: None,
+                payload: None,
+                updated_on: None,
+                chargen_data: None,
+                saves: None,
+            };
+
+            if msg.token != None {
+                let user_option = get_user_from_login_token(
+                    ws.pool.clone(),
+                    msg.token,
+                    ws.req.clone()
+                );
+                match user_option {
+                    Some( user ) => {
+
+
+                        message_to_be_send.saves = Some(get_user_saves(
+                            &ws.pool.clone(),
+                            user.id,
+                            msg.updated_on,
+                            false,
+                        ));
+
+                    }
+                    None => {
+
+                    }
+                }
+            }
+
+            send_message( message_to_be_send, ctx );
+
         }
         WebsocketMessageType::ChargenData => {
-            println!("handle_message Online {:?}", msg);
+
+            println!("handle_message ChargenData {:?}", msg);
+
+            let mut message_to_be_send: WebSocketMessage = WebSocketMessage {
+                kind: WebsocketMessageType::ChargenData,
+                token: None,
+                user: None,
+                updated_on: None,
+                payload: None,
+                chargen_data: None,
+                saves: None,
+            };
+
+            if msg.token != None {
+                let user_option = get_user_from_login_token(
+                    ws.pool.clone(),
+                    msg.token,
+                    ws.req.clone()
+                );
+                match user_option {
+                    Some( user ) => {
+                        // ws.user = Some(user.get_public_info());
+
+                        // message_to_be_send.user = Some(user.clone());
+                        // println!("** Online {:?}", ws.user);
+
+                        message_to_be_send.chargen_data = Some(get_chargen_data(
+                            &ws.pool.clone(),
+                            user.id,
+                            msg.updated_on,
+                            true,
+                            user.is_premium, // access_wildcard,
+                            user.is_developer, // access_developer,
+                            user.is_admin, // access_admin,
+                            false, // all
+                        ));
+
+                        // let pool = ws.pool.clone();
+                        // let user_id = user.id;
+                        // task::spawn_local(async move {
+                        //     println!("** Moo?");
+                        //     send_standard_email(
+                        //         pool,
+                        //         user_id,
+                        //         "Helloooooo".to_string(),
+                        //         r#"Don't be such a fart face <strong>Strong text</strong>"#.to_string()
+                        //     ).await;
+                        //     }
+                        // );
+                    }
+                    None => {
+
+                        message_to_be_send.chargen_data = Some(get_chargen_data(
+                            &ws.pool.clone(),
+                            0,
+                            msg.updated_on,
+                            false,  // access_registered
+                            false, // access_wildcard,
+                            false,  // access_developer,
+                            false,  // access_admin,
+                            false, // all
+                        ));
+                    }
+                }
+            }
+
+            send_message( message_to_be_send, ctx );
+
+
         }
         WebsocketMessageType::Online => {
             println!("handle_message Online {:?}", msg);
@@ -31,6 +136,7 @@ pub fn handle_message(
                 token: None,
                 user: None,
                 payload: None,
+                updated_on: None,
                 chargen_data: None,
                 saves: None,
             };
@@ -85,6 +191,7 @@ pub fn handle_message(
                 token: None,
                 user: None,
                 payload: None,
+                updated_on: None,
                 chargen_data: None,
                 saves: None,
             };
