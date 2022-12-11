@@ -15,6 +15,13 @@ pub fn handle_message(
 
 
     match msg.kind {
+
+        WebsocketMessageType::Saves => {
+            println!("handle_message Online {:?}", msg);
+        }
+        WebsocketMessageType::ChargenData => {
+            println!("handle_message Online {:?}", msg);
+        }
         WebsocketMessageType::Online => {
             println!("handle_message Online {:?}", msg);
             // update_global_vars.emit( global_vars );
@@ -24,11 +31,13 @@ pub fn handle_message(
                 token: None,
                 user: None,
                 payload: None,
+                chargen_data: None,
+                saves: None,
             };
 
             // send_message( message_to_be_send, ctx );
 
-            if ws.user == None && msg.token != None {
+            if msg.token != None {
                 let user_option = get_user_from_login_token(
                     ws.pool.clone(),
                     msg.token,
@@ -38,7 +47,7 @@ pub fn handle_message(
                     Some( user ) => {
                         ws.user = Some(user.get_public_info());
 
-                        message_to_be_send.user = Some(user.get_public_info());
+                        message_to_be_send.user = Some(user.clone());
                         println!("** Online {:?}", ws.user);
 
                         // let pool = ws.pool.clone();
@@ -76,6 +85,8 @@ pub fn handle_message(
                 token: None,
                 user: None,
                 payload: None,
+                chargen_data: None,
+                saves: None,
             };
             send_message( message_to_be_send, ctx );
         }
