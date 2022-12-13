@@ -324,13 +324,13 @@ pub async fn auth_update_settings(
 
                     if form.remove_image {
                         if std::path::Path::new(&png_filename).exists() {
-                            fs::remove_file(&png_filename);
+                            let _ = fs::remove_file(&png_filename);
                         }
                         if std::path::Path::new(&jpg_filename).exists() {
-                            fs::remove_file(&jpg_filename);
+                            let _ = fs::remove_file(&jpg_filename);
                         }
                         if std::path::Path::new(&webp_filename).exists() {
-                            fs::remove_file(&webp_filename);
+                            let _ = fs::remove_file(&webp_filename);
                         }
                         user_settings.profile_image = "".to_string();
                     }

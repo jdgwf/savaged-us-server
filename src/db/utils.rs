@@ -1,4 +1,39 @@
+use actix_web::cookie::time::PrimitiveDateTime;
 use chrono::prelude::*;
+use mysql::Row;
+
+
+pub fn mysql_row_to_chrono_utc (
+    row: &mut Row,
+    field_name: &str,
+) ->  Option<DateTime<Utc>> {
+
+    let date_opt_opt = row.take_opt(field_name);
+
+
+    match date_opt_opt {
+
+        Some( date_opt ) => {
+            match date_opt {
+
+                Ok( val ) => {
+                    let primitive: PrimitiveDateTime = val;
+
+                    return mysql_datetime_to_chrono_utc(primitive.to_string().replace(".0", ""));
+                }
+                Err( err ) => {
+                    println!("mysql_row_to_chrono_utc error {:?}", err );
+                    return None;
+                }
+
+            }
+        }
+        None => {
+            // println!("mysql_row_to_chrono_utc error {:?}", err );
+            return None;
+        }
+    }
+}
 
 pub fn mysql_datetime_to_chrono_utc(
     date_string: String

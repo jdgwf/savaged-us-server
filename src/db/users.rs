@@ -1,8 +1,9 @@
 
+use actix_web::cookie::time::PrimitiveDateTime;
 use mysql::*;
 use mysql::prelude::*;
 use chrono::prelude::*;
-use crate::db::utils::mysql_datetime_to_chrono_utc;
+use crate::db::utils::mysql_row_to_chrono_utc;
 use crate::utils::encrypt_password;
 
 use actix_web::HttpRequest;
@@ -378,33 +379,31 @@ fn _update_user_last_seen(
 }
 
 fn _make_user_from_row( mut row: Row ) -> User {
-    let created_on_string: String = row.take_opt("created_on")
-        .unwrap_or(Ok("".to_string()))
-        .unwrap_or("".to_string());
-    let deleted_on_string: String = row.take_opt("deleted_on")
-        .unwrap_or(Ok("".to_string()))
-        .unwrap_or("".to_string());
-    let updated_on_string: String = row.take_opt("updated_on")
-        .unwrap_or(Ok("".to_string()))
-        .unwrap_or("".to_string());
-    let zombie_on_string: String = row.take_opt("zombie_on")
-        .unwrap_or(Ok("".to_string()))
-        .unwrap_or("".to_string());
-    let last_seen_on_string: String = row.take_opt("last_seen_on")
-        .unwrap_or(Ok("".to_string()))
-        .unwrap_or("".to_string());
-    // let registration_expires_string: String = row.take_opt("registration_expires")
+    // let created_on_string: String = row.take_opt("created_on")
     //     .unwrap_or(Ok("".to_string()))
     //     .unwrap_or("".to_string());
-    let banned_on_string: String = row.take_opt("banned_on")
-        .unwrap_or(Ok("".to_string()))
-        .unwrap_or("".to_string());
-    let premium_expires_string: String = row.take_opt("premium_expires")
-        .unwrap_or(Ok("".to_string()))
-        .unwrap_or("".to_string());
-    let reset_password_expire_string : String = row.take_opt("reset_password_expire")
-        .unwrap_or(Ok("".to_string()))
-        .unwrap_or("".to_string());
+    // let deleted_on_string: String = row.take_opt("deleted_on")
+    //     .unwrap_or(Ok("".to_string()))
+    //     .unwrap_or("".to_string());
+
+    // let zombie_on_string: String = row.take_opt("zombie_on")
+    //     .unwrap_or(Ok("".to_string()))
+    //     .unwrap_or("".to_string());
+    // let last_seen_on_string: String = row.take_opt("last_seen_on")
+    //     .unwrap_or(Ok("".to_string()))
+    //     .unwrap_or("".to_string());
+    // // let registration_expires_string: String = row.take_opt("registration_expires")
+    // //     .unwrap_or(Ok("".to_string()))
+    // //     .unwrap_or("".to_string());
+    // let banned_on_string: String = row.take_opt("banned_on")
+    //     .unwrap_or(Ok("".to_string()))
+    //     .unwrap_or("".to_string());
+    // let premium_expires_string: String = row.take_opt("premium_expires")
+    //     .unwrap_or(Ok("".to_string()))
+    //     .unwrap_or("".to_string());
+    // let reset_password_expire_string : String = row.take_opt("reset_password_expire")
+    //     .unwrap_or(Ok("".to_string()))
+    //     .unwrap_or("".to_string());
 
     let login_tokens_string: String = row.take("login_tokens").unwrap();
     let login_tokens: Vec<LoginToken> = serde_json::from_str( login_tokens_string.as_str() ).unwrap();
@@ -421,8 +420,13 @@ fn _make_user_from_row( mut row: Row ) -> User {
     let updated_opt = row.take_opt("updated_by").unwrap();
     match updated_opt {
 
-        Ok( val ) => {updated_by = val;}
-        Err( _ ) => {}
+        Ok( val ) => {
+            println!("updated_by val {:?}", val );
+            updated_by = val;
+        }
+        Err( err ) => {
+            println!("updated_by error {:?}", err );
+        }
 
     }
     let mut deleted_by = 0;
@@ -442,19 +446,43 @@ fn _make_user_from_row( mut row: Row ) -> User {
         Err( _ ) => {}
 
     }
+
+
+    // let mut updated_on_string: String = "".to_string();
+        // let updated_on_string: String = row.take_opt("updated_on")
+    //     .unwrap_or(Ok("".to_string()))
+    //     .unwrap_or("".to_string());
+
+    // let updated_on_opt = row.take_opt("updated_on").unwrap();
+    // let mut updated_on: String = "".to_owned();
+    // match updated_on_opt {
+
+    //     Ok( val ) => {
+    //         let naive: PrimitiveDateTime = val;
+
+    //         updated_on = naive.to_string().replace(".0", "");
+    //         // updated_on = Some(val);
+    //         // println!("updated_on val {:?} {:?}", naive, &updated_on_string );
+    //     }
+    //     Err( _err ) => {
+    //         // println!("updated_on_opt error {:?}", err );
+    //     }
+
+    // }
+
     let user = User{
         activated: row.take("activated").unwrap(),
         api_key: row.take("api_key").unwrap(),
         banned: row.take("banned").unwrap(),
         banned_by: row.take("banned_by").unwrap(),
-        banned_on: mysql_datetime_to_chrono_utc(banned_on_string), // row.take("banned_on").unwrap(),
+        banned_on: mysql_row_to_chrono_utc(&mut row, "bannned_on"), // row.take("banned_on").unwrap(),
         banned_reason: row.take("banned_reason").unwrap(),
         created_by: created_by,
-        created_on: mysql_datetime_to_chrono_utc(created_on_string), // created_on_dtfo.with_timezone( &Utc),
+        created_on: mysql_row_to_chrono_utc(&mut row, "created_on"), // created_on_dtfo.with_timezone( &Utc),
         default_username: row.take("default_username").unwrap(),
         deleted: row.take("deleted").unwrap(),
         deleted_by: deleted_by,
-        deleted_on: mysql_datetime_to_chrono_utc(deleted_on_string), // row.take("deleted_on").unwrap(),
+        deleted_on: mysql_row_to_chrono_utc( &mut row, "deleted_on"), // row.take("deleted_on").unwrap(),
         discord_id: row.take("discord_id").unwrap(),
         email: row.take("email").unwrap(),
         first_name: row.take("first_name").unwrap(),
@@ -467,7 +495,7 @@ fn _make_user_from_row( mut row: Row ) -> User {
         is_premium: row.take("is_premium").unwrap(),
         last_name: row.take("last_name").unwrap(),
         last_seen_ip: row.take("last_seen_ip").unwrap(),
-        last_seen_on: mysql_datetime_to_chrono_utc(last_seen_on_string), // row.take("last_seen_on").unwrap(),
+        last_seen_on: mysql_row_to_chrono_utc( &mut row, "last_seen_on"), // row.take("last_seen_on").unwrap(),
         lc_wildcard_reason: row.take("lc_wildcard_reason").unwrap(),
         login_tokens: login_tokens.clone(), //row.take("login_tokens").unwrap(),
         notes: "".to_string(), // row.take("notes").unwrap(),
@@ -476,9 +504,9 @@ fn _make_user_from_row( mut row: Row ) -> User {
         number_years: row.take("number_years").unwrap(),
         partner_id: row.take("partner_id").unwrap(),
         paypal_payment_id: row.take("paypal_payment_id").unwrap(),
-        premium_expires: mysql_datetime_to_chrono_utc(premium_expires_string), // row.take("premium_expires").unwrap(),
+        premium_expires: mysql_row_to_chrono_utc( &mut row, "premium_expires"), // row.take("premium_expires").unwrap(),
         profile_image: row.take("profile_image").unwrap(),
-        reset_password_expire: mysql_datetime_to_chrono_utc(reset_password_expire_string), // row.take("reset_password_expire").unwrap(),
+        reset_password_expire: mysql_row_to_chrono_utc( &mut row, "reset_password_expire"), // row.take("reset_password_expire").unwrap(),
         share_bio: share_bio,
         share_display_name: row.take("share_display_name").unwrap(),
         share_show_profile_image: row.take("share_show_profile_image").unwrap(),
@@ -489,23 +517,25 @@ fn _make_user_from_row( mut row: Row ) -> User {
         twitter: row.take("twitter").unwrap(),
         updated_by: updated_by,
         // updated_on: Central.from_local_datetime(&updated_on).with_timezone(&Utc).clone(),
-        // updated_on: DateTime::<Utc>::parse_from_rfc3339(&updated_on).clone(),
-        updated_on: mysql_datetime_to_chrono_utc(updated_on_string), // updated_on_dtfo.with_timezone( &Utc),
+        // updated_on: Some(DateTime::from_utc(DateTime::parse_from_rfc3339( &updated_on.to_string() ).unwrap().naive_utc(), Utc)),
+        updated_on: mysql_row_to_chrono_utc( &mut row, "updated_on"), // updated_on_dtfo.with_timezone( &Utc),
         username: row.take("username").unwrap(),
         version_of: row.take("version_of").unwrap(),
         zombie: row.take("zombie").unwrap(),
         unread_notifications: 0, // row.take("unread_notifications").unwrap(),
-        zombie_on: mysql_datetime_to_chrono_utc(zombie_on_string), // row.take("zombie_on").unwrap(),
+        zombie_on: mysql_row_to_chrono_utc( &mut row, "zombie_on"), // row.take("zombie_on").unwrap(),
     };
     user.get_image("");
     return user;
 }
+
 pub struct LoginResult {
     pub user_id: u32,
     pub banned: bool,
     pub banned_reason: String,
     pub error: String,
 }
+
 pub fn log_user_in(
     pool: Data<Pool>,
     email: String,

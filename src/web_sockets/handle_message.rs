@@ -17,18 +17,10 @@ pub fn handle_message(
     match msg.kind {
 
         WebsocketMessageType::Saves => {
-            println!("handle_message Saves {:?}", msg);
+            // println!("handle_message Saves {:?}", msg);
 
-            let mut message_to_be_send: WebSocketMessage = WebSocketMessage {
-                kind: WebsocketMessageType::Saves,
-                token: None,
-                user: None,
-                payload: None,
-                updated_on: None,
-                chargen_data: None,
-                saves: None,
-            };
-
+            let mut message_to_be_send = WebSocketMessage::default();
+            message_to_be_send.kind = WebsocketMessageType::Saves;
             if msg.token != None {
                 let user_option = get_user_from_login_token(
                     ws.pool.clone(),
@@ -58,18 +50,10 @@ pub fn handle_message(
         }
         WebsocketMessageType::ChargenData => {
 
-            println!("handle_message ChargenData {:?}", msg);
+            // println!("handle_message ChargenData {:?}", msg);
 
-            let mut message_to_be_send: WebSocketMessage = WebSocketMessage {
-                kind: WebsocketMessageType::ChargenData,
-                token: None,
-                user: None,
-                updated_on: None,
-                payload: None,
-                chargen_data: None,
-                saves: None,
-            };
-
+            let mut message_to_be_send = WebSocketMessage::default();
+            message_to_be_send.kind = WebsocketMessageType::ChargenData;
             if msg.token != None {
                 let user_option = get_user_from_login_token(
                     ws.pool.clone(),
@@ -121,6 +105,17 @@ pub fn handle_message(
                         ));
                     }
                 }
+            } else {
+                message_to_be_send.chargen_data = Some(get_chargen_data(
+                    &ws.pool.clone(),
+                    0,
+                    msg.updated_on,
+                    false,  // access_registered
+                    false, // access_wildcard,
+                    false,  // access_developer,
+                    false,  // access_admin,
+                    false, // all
+                ));
             }
 
             send_message( message_to_be_send, ctx );
@@ -128,19 +123,12 @@ pub fn handle_message(
 
         }
         WebsocketMessageType::Online => {
-            println!("handle_message Online {:?}", msg);
+            // println!("handle_message Online {:?}", msg);
             // update_global_vars.emit( global_vars );
 
-            let mut message_to_be_send: WebSocketMessage = WebSocketMessage {
-                kind: WebsocketMessageType::Online,
-                token: None,
-                user: None,
-                payload: None,
-                updated_on: None,
-                chargen_data: None,
-                saves: None,
-            };
+            let mut message_to_be_send = WebSocketMessage::default();
 
+            message_to_be_send.kind = WebsocketMessageType::Online;
             // send_message( message_to_be_send, ctx );
 
             if msg.token != None {
@@ -154,7 +142,6 @@ pub fn handle_message(
                         ws.user = Some(user.get_public_info());
 
                         message_to_be_send.user = Some(user.clone());
-                        println!("** Online {:?}", ws.user);
 
                         // let pool = ws.pool.clone();
                         // let user_id = user.id;
@@ -181,20 +168,13 @@ pub fn handle_message(
         }
 
         WebsocketMessageType::Offline => {
-            println!("handle_message Offline {:?}", msg);
-            println!("Offline {:?}", ws.user);
+            // println!("handle_message Offline {:?}", msg);
+            // println!("Offline {:?}", ws.user);
             // update_global_vars.emit( global_vars );
 
             // ctx.text(msg);
-            let message_to_be_send: WebSocketMessage = WebSocketMessage {
-                kind: WebsocketMessageType::Online,
-                token: None,
-                user: None,
-                payload: None,
-                updated_on: None,
-                chargen_data: None,
-                saves: None,
-            };
+            let mut message_to_be_send = WebSocketMessage::default();
+            message_to_be_send.kind = WebsocketMessageType::Offline;
             send_message( message_to_be_send, ctx );
         }
 
@@ -208,7 +188,6 @@ fn send_message(
     send_message: WebSocketMessage,
     ctx: &mut ws::WebsocketContext<MyWs>,
 ) {
-
     let send_data_result = serde_json::to_string( &send_message );
 
     match send_data_result {

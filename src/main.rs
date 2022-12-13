@@ -86,11 +86,13 @@ async fn main() -> std::io::Result<()> {
         "/me/subscription",
         "/me/devices",
         "/me/api-key",
+
+        "/my-data",
+        "/my-data/saves",
+        "/my-data/campaigns",
     ];
 
     dotenv().ok();
-
-
 
     let mut serve_port = 3000;
     match std::env::var("PORT") {
