@@ -70,11 +70,15 @@ use actix_cors::Cors;
 async fn main() -> std::io::Result<()> {
     let ssr_routes = vec![
         "/",
-        "/about",
-        "/tech",
-        "/todos",
+
+        "/info/",
+        "/info",
+        "/info/about",
+        "/info/tech",
+        "/info/to-dos",
+
         "/register",
-        "/playground",
+        // "/playground",
         "/login",
         "/forgot-password",
 
@@ -93,6 +97,16 @@ async fn main() -> std::io::Result<()> {
     ];
 
     dotenv().ok();
+
+    let mut serve_ip = "127.0.0.1".to_string();
+    match std::env::var("SERVE_IP") {
+        Ok( val ) => {
+            serve_ip = val;
+        }
+        Err( _ ) => {
+
+        }
+    };
 
     let mut serve_port = 3000;
     match std::env::var("PORT") {
@@ -172,7 +186,7 @@ async fn main() -> std::io::Result<()> {
 
                     env_logger::init();
 
-                    println!("Running on http://localhost:{}", serve_port);
+                    println!("Running on http://{}:{}", serve_ip, serve_port);
                     HttpServer::new( move || {
                         let logger = Logger::default();
                         let cors = Cors::permissive();
@@ -225,8 +239,8 @@ async fn main() -> std::io::Result<()> {
                             // serve user images...
                             .service(
                                 fs::Files::new(
-                                    "/data-images/user",
-                                    "./data/uploads/users")
+                                    "/data-images/",
+                                    "./data/uploads/")
                                     .use_last_modified(true)
 
                             )
@@ -240,7 +254,7 @@ async fn main() -> std::io::Result<()> {
 
                             )
 
-                    }).bind( ("127.0.0.1", serve_port) )?
+                    }).bind( (serve_ip, serve_port) )?
                     .run()
                     .await
 

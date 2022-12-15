@@ -101,7 +101,8 @@ pub fn get_chargen_table_data(
 
         from {}
 
-        WHERE 1 = 1
+        WHERE deleted < 1
+        and version_of < 1
 
         ",
 
@@ -247,6 +248,8 @@ pub fn get_hindrances(
                         data.updated_on = row.updated_on;
                         data.deleted_on = row.deleted_on;
 
+                        data.deleted = row.deleted;
+
                         data.created_by = row.created_by;
                         data.updated_by = row.updated_by;
                         data.deleted_by = row.deleted_by;
@@ -295,6 +298,8 @@ pub fn get_edges(
                         data.created_on = row.created_on;
                         data.updated_on = row.updated_on;
                         data.deleted_on = row.deleted_on;
+
+                        data.deleted = row.deleted;
 
                         data.created_by = row.created_by;
                         data.updated_by = row.updated_by;

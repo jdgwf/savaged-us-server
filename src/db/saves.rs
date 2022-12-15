@@ -5,7 +5,7 @@ use actix_web:: {
     // web::Json,
     web::Data,
 };
-
+use std::path::Path;
 use savaged_libs::save_db_row::SaveDBRow;
 use crate::db::utils::mysql_datetime_to_chrono_utc;
 
@@ -55,7 +55,9 @@ pub fn get_user_saves(
         session_id,
 
         co_owner,
-        co_owner_folder
+        co_owner_folder,
+
+        uuid_virtual
 
 
 
@@ -200,14 +202,79 @@ let updated_on_string: String = row.take_opt("updated_on")
         }
     }
 
+    let mut uuid_string = "".to_owned();
+    match row.take_opt("uuid_virtual") {
+        Some( val ) => {
+            match val {
+                Ok( val_val ) => {
+                    uuid_string = val_val;
+                }
+                Err( _ ) => {
+
+                }
+            }
+
+        }
+        None => {
+
+        }
+    }
+    let save_type: String = row.take("type").unwrap();
+    let id: u32 = row.take("id").unwrap();
+    let updated_on = mysql_datetime_to_chrono_utc(updated_on_string);
+
+    let mut imageurl = "".to_owned();
+
+    let data_dir_path = "./data/uploads/";
+    let base_file_name = save_type.to_string() + &"s/".to_owned() + &created_by.to_string() + &"-".to_owned() + &id.to_string();
+    let png_filename = data_dir_path.to_owned() + &base_file_name + &".png".to_owned();
+    let jpg_filename = data_dir_path.to_owned() + &base_file_name + &".jpg".to_owned();
+    let webp_filename = data_dir_path.to_owned() + &base_file_name + &".webp".to_owned();
+
+    if Path::new(&webp_filename).exists() {
+        match updated_on {
+            Some(updated) => {
+                imageurl = "/data-images/".to_owned() + &base_file_name + &".webp?v=" + &updated.timestamp().to_string();
+            }
+            None => {
+                imageurl = "/data-images/".to_owned() + &base_file_name + &".webp";
+            }
+        }
+    } else {
+
+        if Path::new(&jpg_filename).exists() {
+            match updated_on {
+                Some(updated) => {
+                    imageurl = "/data-images/".to_owned() + &base_file_name + &".jpg?v=" + &updated.timestamp().to_string();
+                }
+                None => {
+                    imageurl = "/data-images/".to_owned() + &base_file_name + &".jpg";
+                }
+            }
+        } else {
+
+            if Path::new(&png_filename).exists() {
+                match updated_on {
+                    Some(updated) => {
+                        imageurl = "/data-images/".to_owned() + &base_file_name + &".png?v=" + &updated.timestamp().to_string();
+                    }
+                    None => {
+                        imageurl = "/data-images/".to_owned() + &base_file_name + &".png";
+                    }
+                }
+            }
+        }
+    }
+
+
     return SaveDBRow{
-        id: row.take("id").unwrap(),
+        id: id,
         data: row.take("data").unwrap(),
 
         created_on: mysql_datetime_to_chrono_utc(created_on_string),
         created_by: created_by,
 
-        updated_on: mysql_datetime_to_chrono_utc(updated_on_string),
+        updated_on: updated_on,
         updated_by: updated_by,
 
         deleted: row.take("deleted").unwrap(),
@@ -218,7 +285,7 @@ let updated_on_string: String = row.take_opt("updated_on")
         // session_id: row.take("session_id").unwrap(),
         name: row.take("name").unwrap(),
         sort_order: row.take("sort_order").unwrap(),
-        save_type: row.take("type").unwrap(),
+        save_type: save_type,
 
         export_generic_json: export_generic_json_send,
         share_html: export_share_html,
@@ -229,7 +296,7 @@ let updated_on_string: String = row.take_opt("updated_on")
 
         share_public: row.take("share_public").unwrap(),
         share_copy: row.take("share_copy").unwrap(),
-        imageurl: row.take("imageurl").unwrap(),
+        imageurl: imageurl,
         folder: row.take("folder").unwrap(),
 
         rifts_living_campaign: row.take("rifts_living_campaign").unwrap(),
@@ -243,6 +310,7 @@ let updated_on_string: String = row.take_opt("updated_on")
         co_owner: row.take("co_owner").unwrap(),
         co_owner_folder: row.take("co_owner_folder").unwrap(),
 
+        uuid: uuid_string,
         co_owner_public: None,
         created_by_public: None,
         updated_by_public: None,

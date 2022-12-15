@@ -71,7 +71,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for MyWs {
             }
 
             Err( err ) => {
-                println!("StreamHandler handle error {:?}", err );
+//                println!("StreamHandler handle error {:?}", err );
             },
 
             _ => {

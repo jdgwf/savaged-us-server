@@ -111,6 +111,7 @@ pub fn get_books(
                                     book.updated_on = mysql_datetime_to_chrono_utc( updated_on );
                                     book.deleted_on = mysql_datetime_to_chrono_utc( deleted_on );
                                     book.created_by = created_by;
+                                    book.deleted = deleted_bool;
                                     book.deleted_by = deleted_by;
                                     book.updated_by = updated_by;
                                     book.id = id;

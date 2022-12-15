@@ -50,7 +50,7 @@ pub fn handle_message(
         }
         WebsocketMessageType::ChargenData => {
 
-            // println!("handle_message ChargenData {:?}", msg);
+            println!("handle_message ChargenData {:?}", msg);
 
             let mut message_to_be_send = WebSocketMessage::default();
             message_to_be_send.kind = WebsocketMessageType::ChargenData;
