@@ -6,7 +6,7 @@ use actix_web:: {
     web::Data,
 };
 use savaged_libs::book::Book;
-use savaged_libs::player_character::chargen_data::ChargenData;
+use savaged_libs::player_character::chargen_data::{ChargenData, ChargenDataLevel};
 use savaged_libs::player_character::edge::Edge;
 use savaged_libs::player_character::hindrance::Hindrance;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
@@ -59,7 +59,22 @@ pub fn get_chargen_data(
         all
     );
 
+    let mut data_level: ChargenDataLevel = ChargenDataLevel::Anonymous;
+
+    if access_admin {
+        data_level = ChargenDataLevel::Admin;
+    } else if access_developer {
+        data_level = ChargenDataLevel::Developer;
+    } else if access_wildcard {
+        data_level = ChargenDataLevel::WildCard;
+    } else if access_registered {
+        data_level = ChargenDataLevel::Registered;
+    } else {
+        data_level = ChargenDataLevel::Anonymous;
+    }
+
     return ChargenData{
+        data_level: data_level,
         books: books,
 
         edges: edges,

@@ -25,7 +25,7 @@ pub async fn hindrances_get(
 pub async fn chargen_data_get(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
-    body: String,
+    _body: String,
     request: HttpRequest,
 ) -> Json<ChargenData> {
 

@@ -2,7 +2,6 @@ mod api;
 mod db;
 extern crate dotenv;
 use actix_web::HttpRequest;
-use actix_web::web::JsonConfig;
 use mysql::*;
 
 mod utils;
@@ -163,7 +162,17 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    let db_conn_url = format!(
+    let mut db_socketpath = "".to_string();
+    match std::env::var("DB_SOCKETPATH") {
+        Ok( val ) => {
+            db_socketpath = val;
+        }
+        Err( _ ) => {
+
+        }
+    };
+
+    let mut db_conn_url = format!(
         "mysql://{}:{}@{}:{}/{}",
         db_user,
         db_password,
@@ -172,7 +181,20 @@ async fn main() -> std::io::Result<()> {
         db_database,
     );
 
+    if !db_socketpath.is_empty() {
+        db_conn_url = format!(
+            "mysql://{}:{}@unix:{}/{}",
+            db_user,
+            db_password,
+            db_socketpath,
+            // db_port,
+            db_database,
+        );
+    }
+
     let mysql_connection_pool;
+
+    println!("db_conn_url {}", db_conn_url);
 
     match Opts::try_from( db_conn_url.as_ref() ) {
         Ok( opts ) => {
