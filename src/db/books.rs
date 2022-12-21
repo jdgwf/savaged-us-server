@@ -45,23 +45,24 @@ pub fn get_books(
 ".to_owned();
 
     if !all {
-        data_query += &" and `books`.`active` > 0";
+        data_query += &" and `books`.`active` > 0\n";
     }
-    data_query += &" and ((".to_owned();
+    data_query += &" and ((\n";
     if access_admin {
-        data_query += &" `books`.`access_admin` > 0";
+        data_query += &" `books`.`access_admin` > 0\n";
 
     } else if access_developer {
-        data_query += &" `books`.`access_developers` > 0";
+        data_query += &" `books`.`access_developer` > 0\n";
     } else if access_wildcard {
-        data_query += &" `books`.`access_wildcard` > 0";
+        data_query += &" `books`.`access_wildcard` > 0\n";
     } else if access_registered {
-        data_query += &" `books`.`access_registered` > 0";
+        data_query += &" `books`.`access_registered` > 0\n";
     } else {
-        data_query += &" `books`.`access_anonymous` > 0";
+        data_query += &" `books`.`access_anonymous` > 0\n";
     }
     data_query += format!(" ) or  `books`.`created_by` like {})", current_user_id).as_ref();
 
+    // println!("{}", data_query);
     match pool.get_conn() {
         Ok( mut conn) => {
             let get_row_data_result = conn
