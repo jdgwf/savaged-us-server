@@ -87,7 +87,53 @@ pub struct LoginForm {
 pub async fn auth_api_login_for_token(
     pool: Data<Pool>,
     form: Json<LoginForm>,
+    request: HttpRequest,
 ) -> Json<LoginTokenResult> {
+
+    let conn_info = request.connection_info();
+
+    let mut real_remote_addy = "".to_string();
+    let mut user_agent = "".to_string();
+    let mut x_forwarded_for = "".to_string();
+
+    let real_remote_addy_option = conn_info.realip_remote_addr();
+    match real_remote_addy_option {
+        Some( val ) => {
+            real_remote_addy = val.to_string();
+        }
+        None => {
+
+        }
+    }
+
+    let user_agent_option = request.headers().get("user-agent");
+    match user_agent_option {
+        Some( val ) => {
+            user_agent = format!("{:?}", val).to_string().replace("\"", "");
+        }
+        None => {
+
+        }
+    }
+
+    let x_forwarded_for_option = request.headers().get("x-forwarded-for");
+    match x_forwarded_for_option {
+        Some( val ) => {
+            x_forwarded_for = format!("{:?}", val).to_string().replace("\"", "");
+        }
+        None => {
+
+        }
+    }
+
+    // println!("real_remote_addy {}", real_remote_addy);
+    // println!("user_agent {}", user_agent);
+    // println!("x_forwarded_for {}", x_forwarded_for);
+
+    if !x_forwarded_for.is_empty() {
+        real_remote_addy = x_forwarded_for;
+    }
+
 
     let mut rv = LoginTokenResult {
         success: false,
@@ -105,8 +151,8 @@ pub async fn auth_api_login_for_token(
         let new_login_token = create_login_token(
             pool.clone(),
             login_results.user_id,
-            "browser".to_owned(),
-            "ip".to_owned(),
+            user_agent.to_owned(),
+            real_remote_addy.to_owned(),
         ).unwrap();
         let user_result = get_user( pool.clone(), login_results.user_id);
         match user_result {

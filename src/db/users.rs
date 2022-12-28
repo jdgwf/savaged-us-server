@@ -37,6 +37,7 @@ pub fn create_login_token(
             browser: browser.clone(),
             last_seen_ip: ip_address.clone(),
             friendly_name: "".to_owned(),
+            logged_out: false,
         }
     );
 
