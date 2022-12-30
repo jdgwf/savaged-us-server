@@ -31,14 +31,20 @@ pub fn handle_message(
                 );
                 match user_option {
                     Some( user ) => {
-
-
-                        message_to_be_send.saves = Some(get_user_saves(
+                        let saves = get_user_saves(
                             &ws.pool.clone(),
                             user.id,
                             msg.updated_on,
                             false,
-                        ));
+                        );
+                        // for item in &saves {
+                        //     if (&item.name).to_owned() == "Chi Master".to_owned() {
+                        //         println!("saves item {:?}", item);
+                        //     }
+                        // }
+                        message_to_be_send.saves = Some(
+                            saves
+                        );
 
                     }
                     None => {
@@ -52,7 +58,7 @@ pub fn handle_message(
         }
         WebsocketMessageType::ChargenData => {
 
-            println!("handle_message ChargenData {:?}", msg);
+            // println!("handle_message ChargenData {:?}", msg);
 
             let mut message_to_be_send = WebSocketMessage::default();
             message_to_be_send.kind = WebsocketMessageType::ChargenData;
@@ -194,6 +200,7 @@ pub fn handle_message(
                             for mut token_entry in user.login_tokens.into_iter() {
                                 if token_entry.token == msg_token {
                                     token_entry.logged_out = true;
+                                    token_entry.token = "".to_owned();
                                     token_entry.last_seen = chrono::offset::Utc::now();
                                 }
                                 login_tokens.push( token_entry );

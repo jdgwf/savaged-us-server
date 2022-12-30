@@ -87,9 +87,14 @@ pub fn get_user_saves(
 
                     let mut rv: Vec<SaveDBRow> = Vec::new();
                     for row in rows {
-                        rv.push( _make_save_from_row(row, with_cached_data) );
+                        let row_data = _make_save_from_row(row, with_cached_data);
+
+                        // if (&row_data.name).to_owned() == "Chi Master".to_owned() {
+                        //     println!("row_data {:?}", row_data );
+                        // }
+
+                        rv.push( row_data );
                     }
-                    // let user = _make_user_from_row( row );
                     return rv;
                 }
                 Err( err ) => {
@@ -113,7 +118,6 @@ fn _make_save_from_row(
     mut row: Row,
     with_cached_data: bool,
 ) -> SaveDBRow {
-
 
     let mut export_generic_json_send = "".to_owned();
     let mut export_share_html = "".to_owned();
@@ -266,7 +270,15 @@ let updated_on_string: String = row.take_opt("updated_on")
         }
     }
 
+    let deleted: i32 = row.take("deleted").unwrap();
+    let name: String = row.take("name").unwrap();
 
+    let mut deleted_bool = false;
+    if deleted > 0 {
+        deleted_bool = true;
+    }
+
+    // println!("save {} {} {} {}", id, deleted, deleted_bool, name);
     return SaveDBRow{
         id: id,
         data: row.take("data").unwrap(),
@@ -277,13 +289,13 @@ let updated_on_string: String = row.take_opt("updated_on")
         updated_on: updated_on,
         updated_by: updated_by,
 
-        deleted: row.take("deleted").unwrap(),
+        deleted: deleted_bool,
         deleted_on: mysql_datetime_to_chrono_utc(deleted_on_string),
         deleted_by: deleted_by,
 
 
         // session_id: row.take("session_id").unwrap(),
-        name: row.take("name").unwrap(),
+        name: name,
         sort_order: row.take("sort_order").unwrap(),
         save_type: save_type,
 
