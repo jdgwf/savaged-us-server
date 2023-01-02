@@ -1,12 +1,13 @@
 mod api;
 mod db;
 extern crate dotenv;
+use actix::Actor;
 use actix_web::HttpRequest;
 use mysql::*;
 
 mod utils;
 mod web_sockets;
-use web_sockets::websocket_handler;
+// use web_sockets::start_websocket_connection;
 
 // use yew::Renderer;
 use yew::prelude::*;
@@ -64,6 +65,9 @@ use actix_web::{
     middleware::Logger,
 };
 use actix_cors::Cors;
+
+use crate::web_sockets::lobby::Lobby;
+use crate::web_sockets::web_socket_router::web_socket_router;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -192,9 +196,16 @@ async fn main() -> std::io::Result<()> {
         );
     }
 
-    let mysql_connection_pool;
+    // let mysql_connection_pool;
 
-    println!("db_conn_url {}", db_conn_url);
+    println!("db_conn_url {}", format!(
+        "mysql://{}:{}@{}:{}/{}",
+        db_user,
+        "REDACTED",
+        db_host,
+        db_port,
+        db_database,
+    ));
 
     match Opts::try_from( db_conn_url.as_ref() ) {
         Ok( opts ) => {
@@ -202,7 +213,8 @@ async fn main() -> std::io::Result<()> {
             match Pool::new(opts) {
                 Ok( pool ) => {
 
-                    mysql_connection_pool = pool.clone();
+                    let mysql_connection_pool = pool.clone();
+                    let chat_server = Lobby::default().start(); //create and spin up a lobby
 
                     env_logger::init();
 
@@ -217,10 +229,12 @@ async fn main() -> std::io::Result<()> {
                             // .app_data(ApiError::json_error(JsonConfig::default()))
 
                             .app_data( Data::new(mysql_connection_pool.clone()))
-                            .route(
-                                "/_ws",
-                                actix_web::web::get().to(websocket_handler)
-                            )
+                            .app_data( Data::new(chat_server.clone()))
+                            // .route(
+                            //     "/_ws",
+                            //     actix_web::web::get().to(start_websocket_connection)
+                            // )
+                            .service( web_socket_router )
                             // Authentication Handlers
                             .service( auth_api_login_for_token )
                             .service( auth_get_user_data )

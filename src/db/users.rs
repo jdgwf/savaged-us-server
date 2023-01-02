@@ -137,13 +137,16 @@ pub fn get_user_from_login_token(
     match &token {
         Some( token_match ) => {
             // Login Tokens are at least 75 characters longs
+            if token_match.is_empty() {
+                return None;
+            }
             if token_match.len() < 75 {
-                println!("get_user_from_login_token token length too small!");
+                println!("get_user_from_login_token token length too small! {}", &token_match);
                 return None;
             }
         }
         None => {
-            println!("get_user_from_login_token no token provided!");
+            // println!("get_user_from_login_token no token provided!");
             return None;
         }
     }

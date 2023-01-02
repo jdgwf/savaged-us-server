@@ -4,15 +4,15 @@ use savaged_libs::{websocket_message::{
     WebSocketMessage,
     WebsocketMessageType,
 }, user::LoginToken};
-use super::MyWs;
+use super::ServerWebsocket;
 use crate::{db::{users::{get_user_from_login_token, update_user_login_tokens}, chargen_data::get_chargen_data, saves::get_user_saves}, utils::send_standard_email};
 use tokio::task;
 use chrono::prelude::*;
 
 pub fn handle_message(
     msg: WebSocketMessage,
-    ctx: &mut ws::WebsocketContext<MyWs>,
-    ws: &mut MyWs,
+    ctx: &mut ws::WebsocketContext<ServerWebsocket>,
+    ws: &mut ServerWebsocket,
 ) {
 
 
@@ -147,7 +147,7 @@ pub fn handle_message(
                 );
                 match user_option {
                     Some( user ) => {
-                        ws.user = Some(user.get_public_info());
+                        ws.user = Some(user.clone());
 
                         message_to_be_send.user = Some(user.clone());
 
@@ -261,7 +261,7 @@ pub fn handle_message(
 
 fn send_message(
     send_message: WebSocketMessage,
-    ctx: &mut ws::WebsocketContext<MyWs>,
+    ctx: &mut ws::WebsocketContext<ServerWebsocket>,
 ) {
     let send_data_result = serde_json::to_string( &send_message );
 
