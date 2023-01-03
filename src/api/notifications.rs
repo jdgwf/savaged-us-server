@@ -49,7 +49,7 @@ pub async fn notifications_get(
     match current_user {
         Some( user ) => {
 
-            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
+            return Json( get_notifications_for_user( pool.clone(), user.id ) );
         }
         None => {
             return Json( Vec::new() );
@@ -124,12 +124,12 @@ pub async fn notifications_set_deleted(
                     ).unwrap();
                     match notifications_result {
                         Some(_ ) => {
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
+                            return Json( get_notifications_for_user( pool.clone(), user.id ) );
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
+                            return Json( get_notifications_for_user( pool.clone(), user.id ) );
                         }
                     }
                 }
@@ -151,7 +151,7 @@ pub async fn notifications_set_read(
     form: Json<NotificationForm>,
     request: HttpRequest,
 ) -> Json<Vec<Notification>> {
-    // println!("notifications_set_read");
+
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
     let mut notification_id: u32 = 0;
@@ -172,6 +172,7 @@ pub async fn notifications_set_read(
     match &form.notification_id {
         Some( val ) => {
             // notification_id = val;
+            // println!( "val {}", val);
             notification_id = val.parse::<u32>().unwrap();
             // println!( "notification_id {}", val);
         }
@@ -224,12 +225,12 @@ pub async fn notifications_set_read(
                     ).unwrap();
                     match notifications_result {
                         Some( _ ) => {
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
+                            return Json( get_notifications_for_user( pool.clone(), user.id ) );
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
+                            return Json( get_notifications_for_user( pool.clone(), user.id ) );
                         }
                     }
                 }
@@ -292,12 +293,12 @@ pub async fn notifications_set_all_read(
                     ).unwrap();
                     match notifications_result {
                         Some( _ ) => {
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
+                            return Json( get_notifications_for_user( pool.clone(), user.id ) );
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
+                            return Json( get_notifications_for_user( pool.clone(), user.id ) );
                         }
                     }
                 }
@@ -314,7 +315,7 @@ pub async fn notifications_set_all_read(
     }
 }
 
-fn _get_notifications_for_user(
+pub fn get_notifications_for_user(
     pool: Data<Pool>,
     current_user_id: u32,
 ) -> Vec<Notification> {
@@ -365,13 +366,13 @@ fn _get_notifications_for_user(
                 }
 
                 Err( err ) => {
-                    println!("_get_notifications_for_user Error 4 {}", err );
+                    println!("get_notifications_for_user Error 4 {}", err );
                     return Vec::new();
                 }
             }
         }
         Err( err ) => {
-            println!("_get_notifications_for_user Error 3 {}", err );
+            println!("get_notifications_for_user Error 3 {}", err );
             return Vec::new();
         }
     }
@@ -435,12 +436,12 @@ pub async fn notifications_delete_basic_admin(
                     ).unwrap();
                     match notifications_result {
                         Some( _ ) => {
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
+                            return Json( get_notifications_for_user( pool.clone(), user.id ) );
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json( _get_notifications_for_user( pool.clone(), user.id ) );
+                            return Json( get_notifications_for_user( pool.clone(), user.id ) );
                         }
                     }
                 }

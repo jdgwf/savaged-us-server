@@ -3,6 +3,7 @@ use actix_web::cookie::time::PrimitiveDateTime;
 use mysql::*;
 use mysql::prelude::*;
 use chrono::prelude::*;
+use crate::api::notifications::get_notifications_for_user;
 use crate::db::utils::mysql_row_to_chrono_utc;
 use crate::utils::encrypt_password;
 
@@ -168,7 +169,16 @@ pub fn get_user_from_login_token(
                 match found_user_result {
                     Some(  row ) => {
 
-                        let user = _make_user_from_row( row );
+                        let mut user = _make_user_from_row( row );
+
+                        let mut new_count = 0;
+                        for msg in &get_notifications_for_user(pool.clone(), user.id) {
+                            if msg.read < 1 {
+                                new_count += 1;
+                            }
+                        }
+                        user.unread_notifications = new_count;
+
                         return Some(user);
                     }
                     None => {
@@ -313,8 +323,9 @@ pub fn get_remote_user(
             match api_key_result {
                 Some( user ) => {
 
+
                     return Some(
-                            _update_user_last_seen(
+                        _update_user_last_seen(
                             pool.clone(),
                             user.clone(),
                             "".to_owned(),
@@ -353,6 +364,17 @@ fn _update_user_last_seen(
         }
     }
     let mut altered_user = user.clone();
+
+
+    let mut new_count = 0;
+    for msg in &get_notifications_for_user(pool.clone(), user.id) {
+        if msg.read < 1 {
+            new_count += 1;
+        }
+    }
+
+    altered_user.unread_notifications = new_count;
+
     altered_user.login_tokens = updated_tokens.clone();
     let login_token_str = serde_json::to_string( &updated_tokens ).unwrap();
     match pool.clone().get_conn() {

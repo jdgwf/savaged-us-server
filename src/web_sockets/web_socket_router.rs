@@ -22,6 +22,7 @@ pub async fn web_socket_router(
         None,
         req.clone(),
     );
+
     let ws = ServerWebsocket::new(
         user,
         pool.clone(),
