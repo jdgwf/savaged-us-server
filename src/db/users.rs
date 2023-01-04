@@ -17,6 +17,9 @@ use actix_web:: {
 use savaged_libs::user::{ User, LoginToken };
 use uuid::Uuid;
 
+
+// HINT: conn.last_insert_id()
+// HINT: conn.rows_affected()
 pub fn create_login_token(
     pool: Data<Pool>,
     user_id: u32,
@@ -347,8 +350,8 @@ pub fn get_remote_user(
 pub fn update_user(
     pool: Data<Pool>,
     user: User,
-) {
-    println!("update_user (db) called ");
+) -> u64 {
+    // println!("update_user (db) called ");
     match pool.get_conn() {
         Ok( mut conn) => {
 
@@ -368,6 +371,7 @@ pub fn update_user(
             `show_user_page` = :show_user_page,
             `share_display_name` = :share_display_name,
             `share_show_profile_image` = :share_show_profile_image,
+            `share_bio` = :share_bio,
             `timezone` = :timezone,
             `updated_on` = now(),
             `updated_by` =:updated_by
@@ -389,27 +393,108 @@ pub fn update_user(
                 "twitter" => &user.twitter,
                 "show_user_page" => &user.show_user_page,
                 "share_display_name" => &user.share_display_name,
+                "share_bio" => &user.share_bio,
                 "share_show_profile_image" => &user.share_show_profile_image,
                 "timezone" => &user.timezone,
                 "updated_by" => &user.updated_by,
                 "id" => &user.id,
             };
 
-            let _: Option<Row> = conn.exec_first( sql, params ).unwrap();
 
+            conn.exec_drop( sql, params ).unwrap();
+
+            return conn.affected_rows();
         }
         Err( err ) => {
-            println!("update_user Error 3 {}", err );
+            // println!("update_user Error 3 {}", err );
+            return 0;
         }
 
     }
+}
+
+pub fn username_available(
+    pool: Data<Pool>,
+    user: User,
+    username: String,
+) -> bool {
+    match pool.get_conn() {
+        Ok( mut conn) => {
+
+
+
+            let sql = "select `id` from `users`
+            where
+                `id` != :id
+                and
+                `username` like :username";
+
+            let params = params!{
+                "username" => &username,
+                "id" => &user.id,
+            };
+
+            let rows: Option<Row> = conn.exec_first( sql, params ).unwrap();
+            match rows {
+                Some( _row ) => {
+                    return false;
+                }
+                None => {
+                    return true;
+                }
+            }
+
+        }
+        Err( err ) => {
+            println!("username_available Error 3 {}", err );
+        }
+
+    }
+    return false;
+}
+
+pub fn save_username(
+    pool: Data<Pool>,
+    user: User,
+    username: String,
+) -> u64 {
+    match pool.get_conn() {
+        Ok( mut conn) => {
+
+
+
+            let sql = "update `users` SET
+            `username` = :username
+            where
+                `id` = :id
+            LIMIT 1
+            ";
+
+
+            let params = params!{
+                "username" => &username,
+                "id" => &user.id,
+            };
+
+
+            conn.exec_drop( sql, params ).unwrap();
+
+            return conn.affected_rows();
+        }
+        Err( err ) => {
+            println!("save_username Error 3 {}", err );
+            return 0;
+        }
+
+    }
+
 }
 
 pub fn update_password(
     pool: Data<Pool>,
     user: User,
     new_password: Option<String>,
-) {
+) -> u64 {
     println!("update_password (db) called {:?}", new_password);
     match pool.get_conn() {
         Ok( mut conn) => {
@@ -433,11 +518,13 @@ pub fn update_password(
                 "id" => &user.id,
             };
 
-            let _: Option<Row> = conn.exec_first( sql, params ).unwrap();
+            conn.exec_drop( sql, params ).unwrap();
 
+            return conn.affected_rows();
         }
         Err( err ) => {
-            println!("update_user Error 3 {}", err );
+            println!("update_password Error 3 {}", err );
+            return 0;
         }
 
     }

@@ -19,6 +19,8 @@ use super::super::db::users::{
     update_password,
     get_remote_user,
     update_user_login_tokens,
+    username_available,
+    save_username,
 };
 
 use serde::{Serialize, Deserialize};
@@ -29,23 +31,107 @@ use savaged_libs::user::{ User, LoginToken, UserUpdateResult };
 #[post("/_api/user/save-username")]
 pub async fn api_user_save_username (
     pool: Data<Pool>,
-    // form: Json<LoginForm>,
+    form: Json<UserNameForm>,
     request: HttpRequest,
 ) -> Json<bool> {
 
 
-    println!("api_user_save_username called");
+    // println!("api_user_save_username called");
+
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
+    let mut username = "".to_owned();
+    match &form.login_token {
+        Some( val ) => {
+            login_token = Some(val.to_owned());
+        }
+        None => {}
+    }
+    match &form.api_key {
+        Some( val ) => {
+            api_key = Some(val.to_owned());
+        }
+        None => {}
+    }
+    match &form.username {
+        Some( val ) => {
+            username = val.to_owned();
+        }
+        None => {}
+    }
+
+    let user_option = get_remote_user(
+        pool.clone(),
+        api_key,
+        login_token,
+        request,
+    );
+
+    match user_option {
+        Some( user ) => {
+            // println!("api_user_username_available called {}", &username);
+            let result_count = save_username( pool.clone(), user, username.clone() );
+            // println!("api_user_username_available result {}", &result_count);
+            if result_count == 1 {
+                return Json( true );
+            }
+        }
+        None => {}
+    }
     return Json(false);
 
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+struct UserNameForm {
+    username: Option<String>,
+    api_key: Option<String>,
+    login_token: Option<String>,
 }
 
 #[post("/_api/user/username-available")]
 pub async fn api_user_username_available (
     pool: Data<Pool>,
-    // form: Json<LoginForm>,
+    form: Json<UserNameForm>,
     request: HttpRequest,
 ) -> Json<bool> {
-    println!("api_user_username_available called");
+
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
+    let mut username = "".to_owned();
+    match &form.login_token {
+        Some( val ) => {
+            login_token = Some(val.to_owned());
+        }
+        None => {}
+    }
+    match &form.api_key {
+        Some( val ) => {
+            api_key = Some(val.to_owned());
+        }
+        None => {}
+    }
+    match &form.username {
+        Some( val ) => {
+            username = val.to_owned();
+        }
+        None => {}
+    }
+
+    let user_option = get_remote_user(
+        pool.clone(),
+        api_key,
+        login_token,
+        request,
+    );
+
+    match user_option {
+        Some( user ) => {
+            // println!("api_user_username_available called {}", &username);
+            return Json( username_available( pool.clone(), user, username.clone() ));
+        }
+        None => {}
+    }
     return Json(false);
 }
 
@@ -56,7 +142,7 @@ pub async fn api_user_user_image_data (
     request: HttpRequest,
 ) -> Json<SimpleAPIReturn> {
 
-    println!("api_user_user_image_data called");
+    // println!("api_user_user_image_data called");
 
     let rv = SimpleAPIReturn {
         success: false,
@@ -268,10 +354,15 @@ pub async fn api_user_update_settings(
                             );
                         }
 
-                        update_user(
+                        let rows_affected = update_user(
                             pool.clone(),
                             user_settings.clone(),
                         );
+
+                        if rows_affected == 1 {
+                            return_value.success = true;
+                            return_value.message = "User Updated".to_string();
+                        }
 
 
                     } else {
@@ -359,147 +450,6 @@ pub async fn api_user_token_remove(
 }
 
 /*
-
-router.post(CONFIGApiPrefix + '/user/update-settings', async (req: express.Request, res: express.Response, next: any) => {
-    let apiUser = await getAPIUser( req );
-    if(
-        req.session
-        && apiUser
-        && process.env.SHA_SECRET_KEY
-    ) {
-        if( req.body  ) {
-            let newPassword: string = "";
-            let updatedPassword: boolean = false;
-            if(
-                req.body.password
-                && req.body.repeat_password
-                && req.body.repeat_password == req.body.password
-            ) {
-                updatedPassword = true;
-                let hash = crypto.createHash('sha224' );
-
-                let data = hash.update( utf8.encode(req.body.password));
-                data = hash.update( utf8.encode(process.env.SHA_SECRET_KEY) );
-                newPassword= data.digest('base64');
-            }
-
-            let userGroups = await DB.UserGroups.all();
-
-            let userObj = new User(apiUser.export(), userGroups );
-            let userObjOriginal = new User(userObj.export(), userGroups );
-
-            userObj.importObj( req.body, userGroups );
-
-            console.log("req.body", req.body)
-            // Override any potential hacker variables in POST
-            userObj.isWildcard = userObjOriginal.isWildcard;
-            userObj.isAce = userObjOriginal.isAce;
-            userObj.isAdmin = userObjOriginal.isAdmin;
-            userObj.isDeveloper = userObjOriginal.isDeveloper;
-            userObj.id = userObjOriginal.id;
-            userObj.lifetimeWildCard = userObj.lifetimeWildCard ;
-            userObj.lifetimeWildcardReason = userObj.lifetimeWildcardReason ;
-            userObj.wildcardExpires = userObj.wildcardExpires;
-            userObj.lastSeenIP = userObj.lastSeenIP;
-            userObj.lastSeenOn = userObj.lastSeenOn;
-
-            let dataDirPath: string = app.get('dataDirPath');
-            let png_filename = dataDirPath + "users/" + userObj.id + ".png";
-            let jpg_filename = dataDirPath + "users/" + userObj.id + ".jpg";
-            let webp_filename = dataDirPath + "users/" + userObj.id + ".webp";
-
-            if( req.body.remove_image  ) {
-
-                if ( await fs.existsSync(png_filename) ) {
-                    fs.unlinkSync( png_filename );
-                }
-                if ( await fs.existsSync(jpg_filename) ) {
-                    fs.unlinkSync( jpg_filename );
-                }
-                if ( await fs.existsSync(webp_filename) ) {
-                    fs.unlinkSync( webp_filename );
-                }
-                userObj.profileImage = "";
-            }
-
-            if ( await fs.existsSync(png_filename) ) {
-                userObj.profileImage = "png"
-            }
-            if ( await fs.existsSync(jpg_filename) ) {
-                userObj.profileImage = "jpg"
-            }
-            if ( await fs.existsSync(webp_filename) ) {
-                userObj.profileImage = "webp"
-            }
-
-            let doNotifyAdmins = false;
-            if( !userObj.activated  ) {
-                doNotifyAdmins = true;
-            }
-
-            if( userObj.email && userObj.email.trim() ) {
-
-                await DB.Users.update_user(
-                    userObj,
-                    newPassword
-                );
-
-                if( newPassword.length > 0 ) {
-                    sendStandardEmail(
-                        userObj.id,
-                        "Password Change Notification",
-                        "<p>This is just a little notification to inform you that your password at " + CONFIGSiteTitle + " (<a href=\"" + CONFIGLiveHost+ "\">" + CONFIGLiveHost + "</a>) has been changed.</p>",
-                    );
-                }
-
-                let current_user = await DB.Users.get_user( userObj.id );
-                if( current_user ) {
-                    let dataDirPath: string = app.get('dataDirPath');
-
-                    // Check if profile pic actually exists, clear out profile_image if not.
-                    if( dataDirPath ) {
-
-                        if ( await fs.existsSync(dataDirPath + "users/" + current_user.id + ".jpg")) {
-                            current_user.profile_image = "jpg";
-                        } else if ( await fs.existsSync(dataDirPath + "users/" + current_user.id + ".png")) {
-                            current_user.profile_image = "png";
-                        } else {
-                            current_user.profile_image = "";
-                        }
-                    }
-                    let sess = req.session;
-                    sess['current_user'] = current_user;
-                    delete req.session["current_user"]["password"];
-                    sess.save( () => {
-
-                        // res.json( { "success": true, "user": current_user, "message": "Settings Saved", "password_changed": false } );
-                        res.json( { "success": true, "user": current_user, "message": "User Updated", "password_changed": updatedPassword } );
-
-                        // res.setHeader('Content-Type', 'application/json');
-
-                        // res.send( JSON.stringify(true) )
-                        // return;
-                    })
-                }
-            } else {
-                res.json( { "success": false, "user": null, "message": "Email Address cannot be empty - this might be a data transfer error.", "password_changed": false } );
-                // return;
-            }
-
-            // return;
-        } else {
-            res.json( { "success": false, "user": null, "message": "No Data", "password_changed": false } );
-            // return;
-        }
-    } else {
-        res.json( { "success": false, "user": null, "message": "Not Logged In", "password_changed": false } );
-        // return;
-    }
-});
-
- */
-
- /*
 
 router.post(CONFIGApiPrefix + '/user/username-available', async (req: express.Request, res: express.Response, next: any) => {
     let userObj = await getAPIUser( req );
