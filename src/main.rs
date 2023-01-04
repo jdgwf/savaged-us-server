@@ -26,13 +26,20 @@ use tokio::task::{
 // use std::path::PathBuf;
 use api::auth::{
     // get_user_groups,
-    auth_api_login_for_token,
-    auth_get_user_data,
-    auth_token_remove,
-    auth_token_update_name,
-    auth_update_settings,
+    api_auth_login_for_token,
+    api_auth_get_user_data,
+};
+
+use api::user::{
+    api_user_token_remove,
+    api_user_token_update_name,
+    api_user_update_settings,
+    api_user_save_username,
+    api_user_username_available,
+    api_user_user_image_data,
 
 };
+
 use api::saves::{
     auth_get_user_saves,
 };
@@ -78,6 +85,9 @@ async fn main() -> std::io::Result<()> {
         "/info",
         "/info/about",
         "/info/tech",
+        "/info/privacy-policy",
+        "/info/partners",
+        "/info/contact",
         "/info/to-dos",
 
         "/register",
@@ -235,17 +245,22 @@ async fn main() -> std::io::Result<()> {
                             //     actix_web::web::get().to(start_websocket_connection)
                             // )
                             .service( web_socket_router )
+
                             // Authentication Handlers
-                            .service( auth_api_login_for_token )
-                            .service( auth_get_user_data )
+                            .service( api_auth_login_for_token )
+                            .service( api_auth_get_user_data )
 
                             // Saves Handlers
                             .service( auth_get_user_saves )
 
-                            // User Token Administration
-                            .service( auth_token_remove )
-                            .service( auth_update_settings )
-                            .service( auth_token_update_name )
+                            // User Settings
+                            .service( api_user_token_remove )
+                            .service( api_user_token_update_name )
+                            .service( api_user_update_settings )
+                            .service( api_user_save_username )
+                            .service( api_user_username_available )
+                            .service( api_user_user_image_data )
+
 
                             // User Notification Page Handlers
                             .service( notifications_set_deleted )

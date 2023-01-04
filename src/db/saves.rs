@@ -311,6 +311,11 @@ let updated_on_string: String = row.take_opt("updated_on")
         imageurl: imageurl,
         folder: row.take("folder").unwrap(),
 
+        image_base64: None,
+        image_base64_mime: None,
+        image_token_base64: None,
+        image_token_base64_mime: None,
+
         rifts_living_campaign: row.take("rifts_living_campaign").unwrap(),
         hits: row.take("hits").unwrap(),
         total_hits: row.take("total_hits").unwrap(),

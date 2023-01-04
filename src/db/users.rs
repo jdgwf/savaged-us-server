@@ -344,6 +344,105 @@ pub fn get_remote_user(
     return None;
 }
 
+pub fn update_user(
+    pool: Data<Pool>,
+    user: User,
+) {
+    println!("update_user (db) called ");
+    match pool.get_conn() {
+        Ok( mut conn) => {
+
+
+
+        let sql = "UPDATE `users` set
+            `first_name` = :first_name,
+            `last_name` = :last_name,
+            `email` = :email,
+            `api_key` = :api_key,
+            `hidden_banners` = :hidden_banners,
+            `turn_off_advance_limits` = :turn_off_advance_limits,
+            `notify_email` = :notify_email,
+            `theme_css` = :theme_css,
+            `profile_image` = :profile_image,
+            `twitter` = :twitter,
+            `show_user_page` = :show_user_page,
+            `share_display_name` = :share_display_name,
+            `share_show_profile_image` = :share_show_profile_image,
+            `timezone` = :timezone,
+            `updated_on` = now(),
+            `updated_by` =:updated_by
+
+            WHERE `id` = :id
+
+            limit 1";
+
+            let params = params!{
+                "first_name" => &user.first_name,
+                "last_name" => &user.last_name,
+                "email" => &user.email,
+                "api_key" => &user.api_key,
+                "hidden_banners" => &user.hidden_banners,
+                "turn_off_advance_limits" => &user.turn_off_advance_limits,
+                "notify_email" => &user.notify_email,
+                "theme_css" => &user.theme_css,
+                "profile_image" => &user.profile_image,
+                "twitter" => &user.twitter,
+                "show_user_page" => &user.show_user_page,
+                "share_display_name" => &user.share_display_name,
+                "share_show_profile_image" => &user.share_show_profile_image,
+                "timezone" => &user.timezone,
+                "updated_by" => &user.updated_by,
+                "id" => &user.id,
+            };
+
+            let _: Option<Row> = conn.exec_first( sql, params ).unwrap();
+
+        }
+        Err( err ) => {
+            println!("update_user Error 3 {}", err );
+        }
+
+    }
+}
+
+pub fn update_password(
+    pool: Data<Pool>,
+    user: User,
+    new_password: Option<String>,
+) {
+    println!("update_password (db) called {:?}", new_password);
+    match pool.get_conn() {
+        Ok( mut conn) => {
+
+
+
+            let sql = "UPDATE `users` set
+            `password` = :password,
+
+            `updated_on` = now(),
+            `updated_by` =:updated_by
+
+            WHERE `id` = :id
+
+            limit 1";
+
+            let params = params!{
+                "password" => &new_password,
+
+                "updated_by" => &user.updated_by,
+                "id" => &user.id,
+            };
+
+            let _: Option<Row> = conn.exec_first( sql, params ).unwrap();
+
+        }
+        Err( err ) => {
+            println!("update_user Error 3 {}", err );
+        }
+
+    }
+}
+
 fn _update_user_last_seen(
     pool: Data<Pool>,
     user: User,
