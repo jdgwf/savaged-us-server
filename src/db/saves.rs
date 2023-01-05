@@ -3,7 +3,7 @@ use mysql::prelude::*;
 use chrono::prelude::*;
 use actix_web:: {
     // web::Json,
-    web::Data,
+    web::Data, cookie::time::PrimitiveDateTime,
 };
 use std::path::Path;
 use savaged_libs::save_db_row::SaveDBRow;
@@ -174,15 +174,78 @@ fn _make_save_from_row(
 
     }
 
-    let created_on_string: String = row.take_opt("created_on")
-    .unwrap_or(Ok("".to_string()))
-    .unwrap_or("".to_string());
-let deleted_on_string: String = row.take_opt("deleted_on")
-    .unwrap_or(Ok("".to_string()))
-    .unwrap_or("".to_string());
-let updated_on_string: String = row.take_opt("updated_on")
-    .unwrap_or(Ok("".to_string()))
-    .unwrap_or("".to_string());
+    // let created_on_string: String = row.take_opt("created_on")
+    // .unwrap_or(Ok("".to_string()))
+    // .unwrap_or("".to_string());
+
+    let mut created_on_string: String = "".to_owned();
+    let mut updated_on_string: String = "".to_owned();
+    let mut deleted_on_string: String = "".to_owned();
+    let created_on_opt = row.take_opt("created_on");
+    match created_on_opt {
+        Some( val_result ) => {
+            let created_on_result = val_result;
+            match created_on_result {
+                Ok( val ) => {
+                    let created_on_pdt: PrimitiveDateTime = val;
+                    created_on_string = created_on_pdt.to_string();
+
+                }
+                Err( _err ) => {
+                    println!("_make_save_from_row created_on_result error {:?}", _err);
+                }
+            }
+        }
+        None => {
+
+        }
+    }
+    let deleted_on_opt = row.take_opt("deleted_on");
+    match deleted_on_opt {
+        Some( val_result ) => {
+            let deleted_on_result = val_result;
+            match deleted_on_result {
+                Ok( val ) => {
+                    let deleted_on_pdt: PrimitiveDateTime = val;
+                    deleted_on_string = deleted_on_pdt.to_string();
+
+                }
+                Err( _err ) => {
+                    println!("_make_save_from_row deleted_on_result error {:?}", _err);
+                }
+            }
+        }
+        None => {
+
+        }
+    }
+
+    let updated_on_opt = row.take_opt("updated_on");
+    match updated_on_opt {
+        Some( val_result ) => {
+            let updated_on_result = val_result;
+            match updated_on_result {
+                Ok( val ) => {
+                    let updated_on_pdt: PrimitiveDateTime = val;
+                    updated_on_string = updated_on_pdt.to_string();
+
+                }
+                Err( _err ) => {
+                    println!("_make_save_from_row updated_on_result error {:?}", _err);
+                }
+            }
+        }
+        None => {
+
+        }
+    }
+// let deleted_on_string: String = row.take_opt("deleted_on")
+//     .unwrap_or(Ok("".to_string()))
+//     .unwrap_or("".to_string());
+// let updated_on_string: String = row.take_opt("updated_on")
+//     .unwrap_or(Ok("".to_string()))
+//     .unwrap_or("".to_string());
+
 
 
     let mut share_url = "".to_string();
@@ -225,7 +288,7 @@ let updated_on_string: String = row.take_opt("updated_on")
     }
     let save_type: String = row.take("type").unwrap();
     let id: u32 = row.take("id").unwrap();
-    let updated_on = mysql_datetime_to_chrono_utc(updated_on_string);
+    let updated_on = mysql_datetime_to_chrono_utc(updated_on_string.clone() );
 
     let mut imageurl = "".to_owned();
 
@@ -278,7 +341,6 @@ let updated_on_string: String = row.take_opt("updated_on")
         deleted_bool = true;
     }
 
-    // println!("save {} {} {} {}", id, deleted, deleted_bool, name);
     return SaveDBRow{
         id: id,
         data: row.take("data").unwrap(),

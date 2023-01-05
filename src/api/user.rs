@@ -1,14 +1,8 @@
 
-use actix_multipart::Field;
-use actix_multipart::Multipart;
-use actix_web::HttpResponse;
-use actix_web::http::Error;
+
 use mysql::Pool;
 use savaged_libs::user::ImageUpdateResult;
-use savaged_libs::websocket_message::SimpleAPIReturn;
 use std::fs;
-// use std::io::Bytes;
-use std::path;
 use std::path::Path;
 use actix_easy_multipart::tempfile::Tempfile;
 use actix_easy_multipart::text::Text;
@@ -98,7 +92,7 @@ pub async fn api_user_save_username (
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
-struct UserNameForm {
+pub struct UserNameForm {
     username: Option<String>,
     api_key: Option<String>,
     login_token: Option<String>,
@@ -251,7 +245,6 @@ pub async fn api_user_update_settings(
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
 
-    // let mut new_value = "".to_owned();
     match &form.login_token {
         Some( val ) => {
             login_token = Some(val.to_owned());
@@ -264,12 +257,6 @@ pub async fn api_user_update_settings(
         }
         None => {}
     }
-    // match &form.selected_token {
-    //     Some( val ) => {
-    //         selected_token = val.to_owned();
-    //     }
-    //     None => {}
-    // }
 
     let user_option = get_remote_user(
         pool.clone(),
@@ -284,11 +271,6 @@ pub async fn api_user_update_settings(
             let user_data: Result<User, serde_json::Error> = serde_json::from_str( &form.current_user );
             match user_data {
                 Ok(mut user_settings) => {
-                    // println!("api_user_update_settings() user found!");
-                    // println!("api_user_update_settings() user_data {:?}", user_settings);
-                    // println!("api_user_update_settings() form.password {:?}", form.password);
-                    // println!("api_user_update_settings() form.repeat_password {:?}", form.repeat_password);
-                    // println!("api_user_update_settings() form.remove_image {:?}", form.remove_image);
 
                     // Override any potential hacker variables in POST
                     user_settings.is_premium = user.is_premium;
@@ -456,13 +438,10 @@ pub struct ImageDataForm {
     image: Tempfile,
 }
 
-
 #[post("/_api/user/set-user-image-data")]
 pub async fn api_user_set_user_image_data(
     pool: Data<Pool>,
     form: MultipartForm<ImageDataForm>,
-    // form: Json<ImageDataForm>,
-    // mut payload: Multipart,
     request: HttpRequest,
 ) -> Json< ImageUpdateResult > {
 
@@ -471,51 +450,38 @@ pub async fn api_user_set_user_image_data(
         message: "Not Authenticated".to_owned(),
         image_url: "".to_owned(),
     };
-    println!("api_user_set_user_image_data form called");
-    // println!("api_user_set_user_image_data form {:?}", &form);
-    // println!("api_user_set_user_image_data payload {:?}", &payload);
+
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
     let mut upload_type: String = "".to_string();
     let mut crop_square: bool = false;
 
-    // let mut new_value = "".to_owned();
     match &form.login_token {
         Some( val ) => {
-            // login_token = Some(format!("{:?}", val.deref()));
             login_token = Some(val.as_str().to_owned());
         }
         None => {}
     }
     match &form.api_key {
         Some( val ) => {
-            // api_key = Some(val.to_owned());
             api_key = Some(val.as_str().to_owned());
         }
         None => {}
     }
     match &form.upload_type {
         Some( val ) => {
-            // upload_type = val.to_owned();
             upload_type = val.as_str().to_owned();
         }
         None => {}
     }
     match &form.crop_square {
         Some( val ) => {
-            // upload_type = val.to_owned();
             if !val.as_str().to_owned().is_empty() {
                 crop_square = true;
             }
         }
         None => {}
     }
-    // match &form.new_value {
-    //     Some( val ) => {
-    //         new_value = val.to_owned();
-    //     }
-    //     None => {}
-    // }
 
     let content_type = form
         .image
@@ -523,12 +489,12 @@ pub async fn api_user_set_user_image_data(
         .as_ref()
         .map(|m| m.as_ref())
         .unwrap_or("null");
-    let file_name = form
-        .image
-        .file_name
-        .as_ref()
-        .map(|m| m.as_ref())
-        .unwrap_or("null");
+    // let file_name = form
+    //     .image
+    //     .file_name
+    //     .as_ref()
+    //     .map(|m| m.as_ref())
+    //     .unwrap_or("null");
 
 
     let user_option = get_remote_user(
@@ -541,17 +507,12 @@ pub async fn api_user_set_user_image_data(
     match user_option {
         Some( user ) => {
 
-            // println!("api_user_set_user_image_data login_token {:?}", &login_token);
-            // println!("api_user_set_user_image_data upload_type {:?}", &upload_type);
-            // println!("api_user_set_user_image_data file_name {}", &file_name);
-            // println!("api_user_set_user_image_data content_type {}", &content_type);
-
             for allowed in CONFIG_ALLOWED_IMAGE_TYPES {
                 if allowed == &content_type {
 
 
                     let _ = fs::create_dir_all( "/data/uploads/".to_owned() + &"users/" + &user.id.to_string() );
-                    // Check if pic actually exists, clear out if not.
+
                     let mut png_filename = "./data/uploads/".to_owned() + &"users/" + &user.id.to_string() + &"-session-" + &upload_type.as_str() + &".png";
                     let mut jpg_filename = "./data/uploads/".to_owned() + &"users/" + &user.id.to_string() + &"-session-" + &upload_type.as_str() + &".jpg";
                     let mut webp_filename = "./data/uploads/".to_owned() + &"users/" + &user.id.to_string() + &"-session-" + &upload_type.as_str() + &".webp";
@@ -559,7 +520,7 @@ pub async fn api_user_set_user_image_data(
                     jpg_filename = jpg_filename.replace("-session-user", "");
                     webp_filename = webp_filename.replace("-session-user", "");
 
-
+                    // Check if pic actually exists, clear out if not.
                     if Path::new(&png_filename.as_str()).is_file() {
                         let _ = fs::remove_file(&png_filename);
                     }
@@ -591,13 +552,6 @@ pub async fn api_user_set_user_image_data(
                         let _ = resize_image_max( &webp_filename, 1000, crop_square );
                     }
 
-
-
-                    // println!("api_user_set_user_image_data content_type 2 {}", &content_type);
-                    // println!("api_user_set_user_image_data png_filename {}", &png_filename);
-                    // println!("api_user_set_user_image_data jpg_filename {}", &jpg_filename);
-                    // println!("api_user_set_user_image_data webp_filename {}", &webp_filename);
-                    // println!("api_user_set_user_image_data save_file_name {}", &save_file_name);
                     rv.success = true;
                     rv.message = "Uploaded".to_owned();
                     rv.image_url = webp_filename.replace("/data/uploads/", "/data-images/");
@@ -611,113 +565,5 @@ pub async fn api_user_set_user_image_data(
     }
 
     return Json( rv );
-    // Ok(HttpResponse::Ok().into())
 }
-/*
 
-
-router.post(CONFIGApiPrefix + '/user/set-user-image-data', async (req: express.Request, res: express.Response, next: any) => {
-    let userObj = await getAPIUser( req );
-    if( process.env.VERBOSE ) {
-        console.info( req.url, userObj ? userObj.id : 0, userObj ? userObj.username : "anon" )
-    }
-    if(
-        req.body.type
-        && req.files
-        && req.files.image
-        && userObj
-    ) {
-        let dataDirPath: string = app.get('dataDirPath');
-
-        if( dataDirPath ) {
-
-            let saveImage: UploadedFile = req.files.image as UploadedFile;
-            console.log("set-user-image-data req.files.image", req.files.image);
-            // Check if is a valid upload file
-            if( CONFIGAllowedImageTypes.indexOf( saveImage.mimetype ) > -1) {
-
-                // Check if pic actually exists, clear out if not.
-                let png_filename = dataDirPath + "users/" + userObj.id + "-session-" + req.body.type +".png";
-                let jpg_filename = dataDirPath + "users/" + userObj.id + "-session-" + req.body.type +".jpg";
-                let webp_filename = dataDirPath + "users/" + userObj.id + "-session-" + req.body.type +".webp";
-                png_filename = png_filename.replace("-session-user", "");
-                jpg_filename = jpg_filename.replace("-session-user", "");
-                webp_filename = webp_filename.replace("-session-user", "");
-
-                // if( req.body.type == "user") {
-                //     png_filename = dataDirPath + "users/" + userObj.id + "-session-" + req.body.type +".png";
-                //     jpg_filename = dataDirPath + "users/" + userObj.id + "-session-" + req.body.type +".jpg";
-                //     png_filename = png_filename.replace("-session-user", "");
-                //     jpg_filename = jpg_filename.replace("-session-user", "");
-                // }
-
-                if ( await fs.existsSync(png_filename) ) {
-                    fs.unlinkSync( png_filename );
-                }
-                if ( await fs.existsSync(jpg_filename) ) {
-                    fs.unlinkSync( jpg_filename );
-                }
-                if ( await fs.existsSync(webp_filename) ) {
-                    fs.unlinkSync( webp_filename );
-                }
-
-                let save_file_name = jpg_filename;
-
-                if(  saveImage.mimetype == "image/png" ) {
-                    save_file_name = png_filename
-                }
-                if(  saveImage.mimetype == "image/webp" ) {
-                    save_file_name = webp_filename
-                }
-
-                await sharp(saveImage.data)
-                .withMetadata()
-                .webp()
-                .toFile(webp_filename);
-
-                save_file_name = webp_filename;
-                console.log("saveImage.mimetype", saveImage.mimetype);
-                let image_url = save_file_name.replace( dataDirPath, CONFIGDataGetUrlPrefix + "/");
-
-                console.log("replace image", req.body.type, saveImage.mimetype, save_file_name, CONFIGImageHeightMax, CONFIGImageWidthMax)
-                if( req.body.type == "user") {
-                    await sharp(saveImage.data)
-                    .resize(
-                        CONFIGImageHeightMax,
-                        CONFIGImageWidthMax,
-                        {
-                            fit: sharp.fit.cover,
-                            // withoutEnlargement: true,
-                        }
-                    )
-                    .toFile(save_file_name);
-                } else {
-                    await sharp(saveImage.data)
-                    .resize(CONFIGImageHeightMax, CONFIGImageWidthMax,
-                        {
-                      fit: sharp.fit.inside,
-                      withoutEnlargement: true,
-                    })
-                    .toFile(save_file_name);
-                }
-
-                res.json( { "success": true, "message": "Uploaded", "image_url": image_url } );
-                return;
-            } else {
-
-                res.json( { "success": false, "message": "Cannot upload image, only jpg, jpeg, or png files are allowed." } );
-                return;
-            }
-
-        } else {
-
-            res.json( { "success": false, "message": "Cannot upload image, only jpg, jpeg, or png files are allowed." } );
-            return;
-        }
-    } else {
-
-        res.json( { "success": false, "message": "Internal Server Error" } );
-        return;
-    }
-});
- */
