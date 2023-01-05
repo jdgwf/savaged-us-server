@@ -8,6 +8,12 @@ use lettre::{
 use sha2::{ Sha224, Digest};
 use voca_rs::strip::strip_tags;
 use crate::db::users::get_user;
+use image::io::Reader as ImageReader;
+use image::{DynamicImage, EncodableLayout, GenericImage, GenericImageView, ImageFormat}; // Using image crate: https://github.com/image-rs/image
+use webp::{Encoder, PixelLayout, WebPImage, WebPMemory}; // Using webp crate: https://github.com/jaredforth/webp
+
+use std::fs::File;
+use std::io::Write;
 
 pub fn encrypt_password( password: String ) -> String {
 
@@ -565,4 +571,76 @@ fn _standardize_html_email(
         .replace("{unsubscribe_html}", &unsubscribe_html)
     ;
 
+}
+
+
+pub fn image_to_webp(
+    file_path: &String,
+    webp_path: &String,
+    max_height_or_width: u32,
+    crop_square: bool,
+) -> Option<String> {
+    // Open path as DynamicImage
+    let mut image: DynamicImage = ImageReader::open(file_path).unwrap().decode().unwrap();
+
+    if crop_square {
+        image = _square_image( image );
+    }
+    image.thumbnail(max_height_or_width, max_height_or_width);
+
+    // Make webp::Encoder from DynamicImage
+    let encoder: Encoder = Encoder::from_image(&image).unwrap();
+
+    // Encode image into WebPMemory
+    let encoded_webp: WebPMemory = encoder.encode(65f32);
+
+    // Make File-stream for WebP-result and write bytes into it, and save to path "output.webp"
+    let mut webp_image = File::create(&webp_path).unwrap();
+    webp_image.write_all(encoded_webp.as_bytes()).unwrap();
+
+    return Some(webp_path.to_owned());
+}
+
+pub fn resize_image_max(
+    file_path: &String,
+    max_height_or_width: u32,
+    crop_square: bool,
+) -> Option<String> {
+    // Open path as DynamicImage
+    let mut image: DynamicImage = ImageReader::open(file_path).unwrap().decode().unwrap();
+
+
+    if crop_square {
+        image = _square_image( image );
+    }
+
+    image.thumbnail(max_height_or_width, max_height_or_width);
+
+    // Make webp::Encoder from DynamicImage
+    let encoder: Encoder = Encoder::from_image(&image).unwrap();
+
+    // Encode image into WebPMemory
+    let encoded_webp: WebPMemory = encoder.encode(65f32);
+
+    // Make File-stream for WebP-result and write bytes into it, and save to path "output.webp"
+    let mut webp_image = File::create(&file_path).unwrap();
+    webp_image.write_all(encoded_webp.as_bytes()).unwrap();
+
+    return Some(file_path.to_owned());
+}
+
+fn _square_image( mut image: DynamicImage ) -> DynamicImage {
+    let (w,h) = image.dimensions();
+
+    if w != h {
+        if w > h {
+            let new_pos = (w -h) / 2;
+            image = image.crop(new_pos, 0, h, h);
+        } else {
+            let new_pos = (h -w) / 2;
+            image = image.crop(0, new_pos, w, w);
+        }
+    }
+
+    return image;
 }

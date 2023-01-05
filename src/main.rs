@@ -3,6 +3,7 @@ mod db;
 extern crate dotenv;
 use actix::Actor;
 use actix_web::HttpRequest;
+use actix_web::http::header;
 use mysql::*;
 
 mod utils;
@@ -36,7 +37,7 @@ use api::user::{
     api_user_update_settings,
     api_user_save_username,
     api_user_username_available,
-    api_user_user_image_data,
+    api_user_set_user_image_data,
 
 };
 
@@ -60,6 +61,8 @@ use api::data::books::books_get;
 use api::banners::{
     banners_get,
 };
+
+
 use actix_files as fs;
 use dotenv::dotenv;
 
@@ -75,6 +78,13 @@ use actix_cors::Cors;
 
 use crate::web_sockets::lobby::Lobby;
 use crate::web_sockets::web_socket_router::web_socket_router;
+
+pub const CONFIG_ALLOWED_IMAGE_TYPES: &'static [&'static str] = &[
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/webp",
+];
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -231,8 +241,20 @@ async fn main() -> std::io::Result<()> {
                     println!("Running on http://{}:{}", serve_ip, serve_port);
                     HttpServer::new( move || {
                         let logger = Logger::default();
-                        let cors = Cors::permissive();
-
+                        // let cors = Cors::permissive().allowed_header(header::CONTENT_TYPE);
+                        let cors = Cors::default()
+                            .allowed_origin("https://v4.savaged.us")
+                            .allowed_origin("https://savaged.us")
+                            .allowed_origin("http://localhost")
+                            .allowed_origin("http://127.0.0.1")
+                            .allowed_origin("http://localhost:8080")
+                            .allowed_origin("http://127.0.0.1:8080")
+                            .allowed_origin("http://localhost:5001")
+                            .allowed_origin("http://127.0.0.1:5001")
+                            .allowed_methods(vec!["GET", "POST", "PUT", "DELETE"])
+                            .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
+                            .allowed_header(header::CONTENT_TYPE)
+                            .max_age(3600);
                         App:: new()
                             .wrap( logger )
                             .wrap( cors )
@@ -259,7 +281,7 @@ async fn main() -> std::io::Result<()> {
                             .service( api_user_update_settings )
                             .service( api_user_save_username )
                             .service( api_user_username_available )
-                            .service( api_user_user_image_data )
+                            .service( api_user_set_user_image_data )
 
 
                             // User Notification Page Handlers
@@ -277,6 +299,7 @@ async fn main() -> std::io::Result<()> {
 
                             // get banners API
                             .service( banners_get )
+
 
                             // render yew app SSR.
                             .service(

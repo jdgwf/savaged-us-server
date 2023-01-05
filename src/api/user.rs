@@ -1,18 +1,33 @@
 
+use actix_multipart::Field;
+use actix_multipart::Multipart;
+use actix_web::HttpResponse;
+use actix_web::http::Error;
 use mysql::Pool;
+use savaged_libs::user::ImageUpdateResult;
 use savaged_libs::websocket_message::SimpleAPIReturn;
 use std::fs;
+// use std::io::Bytes;
 use std::path;
+use std::path::Path;
+use actix_easy_multipart::tempfile::Tempfile;
+use actix_easy_multipart::text::Text;
+use actix_easy_multipart::MultipartForm;
 
 use actix_web:: {
     // get,
     post,
+
+    // multipart
     web::Json,
     web::Data,
 };
 use actix_web::HttpRequest;
 
+use crate::CONFIG_ALLOWED_IMAGE_TYPES;
 use crate::utils::encrypt_password;
+use crate::utils::image_to_webp;
+use crate::utils::resize_image_max;
 
 use super::super::db::users::{
     update_user,
@@ -134,24 +149,6 @@ pub async fn api_user_username_available (
     }
     return Json(false);
 }
-
-#[post("/_api/user/set-user-image-data")]
-pub async fn api_user_user_image_data (
-    pool: Data<Pool>,
-    // form: Json<LoginForm>,
-    request: HttpRequest,
-) -> Json<SimpleAPIReturn> {
-
-    // println!("api_user_user_image_data called");
-
-    let rv = SimpleAPIReturn {
-        success: false,
-        message: "Not implemented".to_owned(),
-    };
-
-    return Json(rv);
-}
-
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct UpdateTokenNameForm {
@@ -449,74 +446,177 @@ pub async fn api_user_token_remove(
     return Json( Vec::new() );
 }
 
+#[derive(MultipartForm)]
+pub struct ImageDataForm {
+    api_key: Option<Text<String>>,
+    login_token: Option<Text<String>>,
+    upload_type: Option<Text<String>>,
+    crop_square: Option<Text<String>>,
+    #[multipart]
+    image: Tempfile,
+}
+
+
+#[post("/_api/user/set-user-image-data")]
+pub async fn api_user_set_user_image_data(
+    pool: Data<Pool>,
+    form: MultipartForm<ImageDataForm>,
+    // form: Json<ImageDataForm>,
+    // mut payload: Multipart,
+    request: HttpRequest,
+) -> Json< ImageUpdateResult > {
+
+    let mut rv: ImageUpdateResult = ImageUpdateResult {
+        success: false,
+        message: "Not Authenticated".to_owned(),
+        image_url: "".to_owned(),
+    };
+    println!("api_user_set_user_image_data form called");
+    // println!("api_user_set_user_image_data form {:?}", &form);
+    // println!("api_user_set_user_image_data payload {:?}", &payload);
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
+    let mut upload_type: String = "".to_string();
+    let mut crop_square: bool = false;
+
+    // let mut new_value = "".to_owned();
+    match &form.login_token {
+        Some( val ) => {
+            // login_token = Some(format!("{:?}", val.deref()));
+            login_token = Some(val.as_str().to_owned());
+        }
+        None => {}
+    }
+    match &form.api_key {
+        Some( val ) => {
+            // api_key = Some(val.to_owned());
+            api_key = Some(val.as_str().to_owned());
+        }
+        None => {}
+    }
+    match &form.upload_type {
+        Some( val ) => {
+            // upload_type = val.to_owned();
+            upload_type = val.as_str().to_owned();
+        }
+        None => {}
+    }
+    match &form.crop_square {
+        Some( val ) => {
+            // upload_type = val.to_owned();
+            if !val.as_str().to_owned().is_empty() {
+                crop_square = true;
+            }
+        }
+        None => {}
+    }
+    // match &form.new_value {
+    //     Some( val ) => {
+    //         new_value = val.to_owned();
+    //     }
+    //     None => {}
+    // }
+
+    let content_type = form
+        .image
+        .content_type
+        .as_ref()
+        .map(|m| m.as_ref())
+        .unwrap_or("null");
+    let file_name = form
+        .image
+        .file_name
+        .as_ref()
+        .map(|m| m.as_ref())
+        .unwrap_or("null");
+
+
+    let user_option = get_remote_user(
+        pool.clone(),
+        api_key,
+        login_token,
+        request,
+    );
+
+    match user_option {
+        Some( user ) => {
+
+            // println!("api_user_set_user_image_data login_token {:?}", &login_token);
+            // println!("api_user_set_user_image_data upload_type {:?}", &upload_type);
+            // println!("api_user_set_user_image_data file_name {}", &file_name);
+            // println!("api_user_set_user_image_data content_type {}", &content_type);
+
+            for allowed in CONFIG_ALLOWED_IMAGE_TYPES {
+                if allowed == &content_type {
+
+
+                    let _ = fs::create_dir_all( "/data/uploads/".to_owned() + &"users/" + &user.id.to_string() );
+                    // Check if pic actually exists, clear out if not.
+                    let mut png_filename = "./data/uploads/".to_owned() + &"users/" + &user.id.to_string() + &"-session-" + &upload_type.as_str() + &".png";
+                    let mut jpg_filename = "./data/uploads/".to_owned() + &"users/" + &user.id.to_string() + &"-session-" + &upload_type.as_str() + &".jpg";
+                    let mut webp_filename = "./data/uploads/".to_owned() + &"users/" + &user.id.to_string() + &"-session-" + &upload_type.as_str() + &".webp";
+                    png_filename = png_filename.replace("-session-user", "");
+                    jpg_filename = jpg_filename.replace("-session-user", "");
+                    webp_filename = webp_filename.replace("-session-user", "");
+
+
+                    if Path::new(&png_filename.as_str()).is_file() {
+                        let _ = fs::remove_file(&png_filename);
+                    }
+                    if Path::new(&jpg_filename.as_str()).is_file() {
+                        let _ = fs::remove_file(&jpg_filename);
+                    }
+                    if Path::new(&webp_filename.as_str()).is_file() {
+                        let _ = fs::remove_file(&webp_filename);
+                    }
+
+                    let mut save_file_name = webp_filename.to_owned();
+
+                    if &content_type == &"image/png" {
+                        save_file_name = png_filename.to_owned();
+                        let _ = fs::copy(form.image.file.path().to_str().unwrap(), &save_file_name);
+                        let _ = image_to_webp( &png_filename, &webp_filename, 1000, crop_square );
+
+
+                        let _ = fs::remove_file(&png_filename);
+                    } else if &content_type == &"image/jpg" || &content_type == &"image/jpeg" {
+                        save_file_name = jpg_filename.to_owned();
+                        let _ = fs::copy(form.image.file.path().to_str().unwrap(), &save_file_name);
+
+                        let _ = image_to_webp( &jpg_filename, &webp_filename, 1000, crop_square );
+
+                        let _ = fs::remove_file(&jpg_filename);
+                    } else {
+                        let _ = fs::copy(form.image.file.path().to_str().unwrap(), &save_file_name);
+                        let _ = resize_image_max( &webp_filename, 1000, crop_square );
+                    }
+
+
+
+                    // println!("api_user_set_user_image_data content_type 2 {}", &content_type);
+                    // println!("api_user_set_user_image_data png_filename {}", &png_filename);
+                    // println!("api_user_set_user_image_data jpg_filename {}", &jpg_filename);
+                    // println!("api_user_set_user_image_data webp_filename {}", &webp_filename);
+                    // println!("api_user_set_user_image_data save_file_name {}", &save_file_name);
+                    rv.success = true;
+                    rv.message = "Uploaded".to_owned();
+                    rv.image_url = webp_filename.replace("/data/uploads/", "/data-images/");
+                }
+            }
+            rv.message = "Cannot upload image, only jpg, jpeg, or png files are allowed.".to_owned();
+        }
+        None => {
+
+        }
+    }
+
+    return Json( rv );
+    // Ok(HttpResponse::Ok().into())
+}
 /*
 
-router.post(CONFIGApiPrefix + '/user/username-available', async (req: express.Request, res: express.Response, next: any) => {
-    let userObj = await getAPIUser( req );
-    if( process.env.VERBOSE ) {
-        console.info( req.url, userObj ? userObj.id : 0, userObj ? userObj.username : "anon" )
-    }
-    if(
-        req.body.username
-        && userObj
-    ) {
 
-        let username = normalizeUsername( req.body.username );
-
-        if( username.trim() ) {
-            let available = await DB.Users.username_available(username, userObj.id );
-
-            if( available ) {
-                res.send( true )
-                return;
-            } else {
-                res.send( false )
-                return;
-            }
-        } else {
-            res.send( false )
-            return;
-        }
-    } else {
-        res.send( false )
-        return;
-    }
-});
-
-router.post(CONFIGApiPrefix + '/user/save-username', async (req: express.Request, res: express.Response, next: any) => {
-    let userObj = await getAPIUser( req );
-    if( process.env.VERBOSE ) {
-        console.info( req.url, userObj ? userObj.id : 0, userObj ? userObj.username : "anon" )
-    }
-    if(
-        req.body.username
-        && userObj
-    ) {
-
-        let username = normalizeUsername( req.body.username );
-        if( username.trim() ) {
-            let affectedRows = await DB.Users.save_username( username, userObj.id );
-
-            if( affectedRows > 0 ) {
-                res.send( true )
-                return;
-            } else {
-                res.send( false )
-                return;
-            }
-        } else {
-            res.send( false )
-            return;
-        }
-
-    } else {
-        res.send( false )
-        return;
-    }
-
-});
-
-router.post(CONFIGApiPrefix + '/auth/set-user-image-data', async (req: express.Request, res: express.Response, next: any) => {
+router.post(CONFIGApiPrefix + '/user/set-user-image-data', async (req: express.Request, res: express.Response, next: any) => {
     let userObj = await getAPIUser( req );
     if( process.env.VERBOSE ) {
         console.info( req.url, userObj ? userObj.id : 0, userObj ? userObj.username : "anon" )
