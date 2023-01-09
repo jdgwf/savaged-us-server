@@ -6,6 +6,9 @@ use actix_web:: {
     web::Data,
 };
 use savaged_libs::book::Book;
+use savaged_libs::player_character::armor::Armor;
+use savaged_libs::player_character::weapon::Weapon;
+use savaged_libs::player_character::gear::Gear;
 use savaged_libs::player_character::chargen_data::{ChargenData, ChargenDataLevel};
 use savaged_libs::player_character::edge::Edge;
 use savaged_libs::player_character::hindrance::Hindrance;
@@ -59,6 +62,25 @@ pub fn get_chargen_data(
         all
     );
 
+    let gear = get_gear(
+        &pool,
+        updated_on,
+        &book_ids,
+        all
+    );
+
+    let armor = get_armor(
+        &pool,
+        updated_on,
+        &book_ids,
+        all
+    );
+    let weapons = get_weapons(
+        &pool,
+        updated_on,
+        &book_ids,
+        all
+    );
     let mut data_level: ChargenDataLevel = ChargenDataLevel::Anonymous;
 
     if access_admin {
@@ -80,9 +102,9 @@ pub fn get_chargen_data(
         edges: edges,
         hindrances: hindrances,
 
-        // gear:  Vec::new(),
-        // armor:  Vec::new(),
-        // weapons:  Vec::new(),
+        gear: gear,
+        armor: armor,
+        weapons: weapons,
         // settings:  Vec::new(),
     };
 }
@@ -324,6 +346,159 @@ pub fn get_edges(
                     }
                     Err( err ) => {
                         println!("Error with data on get_edges {}, {}, {}", row.id, err.to_string(), row_data);
+                    }
+                }
+            }
+            None => {
+
+            }
+        }
+
+    }
+    return parsed_data;
+}
+
+
+
+pub fn get_weapons(
+    pool: &Data<Pool>,
+    updated_on: Option<DateTime<Utc>>,
+    book_ids: &Vec<u32>,
+    all: bool,
+) -> Vec<Weapon> {
+    let rows = get_chargen_table_data(
+        pool,
+        "chargen_weapons".to_owned(),
+        updated_on,
+        book_ids,
+        all,
+    );
+
+    let mut parsed_data: Vec<Weapon> = Vec::new();
+    for row in rows {
+        match row.data {
+
+            Some(row_data) => {
+                let data_result: Result<Weapon, serde_json::Error>  = serde_json::from_str( row_data.as_ref() );
+                match data_result {
+                    Ok( mut data ) => {
+                        data.id = row.id;
+                        data.created_on = row.created_on;
+                        data.updated_on = row.updated_on;
+                        data.deleted_on = row.deleted_on;
+
+                        data.deleted = row.deleted;
+
+                        data.created_by = row.created_by;
+                        data.updated_by = row.updated_by;
+                        data.deleted_by = row.deleted_by;
+
+                        parsed_data.push( data );
+                    }
+                    Err( err ) => {
+                        println!("Error with data on get_weapons {}, {}, {}", row.id, err.to_string(), row_data);
+                    }
+                }
+            }
+            None => {
+
+            }
+        }
+
+    }
+    return parsed_data;
+}
+
+
+
+pub fn get_gear(
+    pool: &Data<Pool>,
+    updated_on: Option<DateTime<Utc>>,
+    book_ids: &Vec<u32>,
+    all: bool,
+) -> Vec<Gear> {
+    let rows = get_chargen_table_data(
+        pool,
+        "chargen_gear".to_owned(),
+        updated_on,
+        book_ids,
+        all,
+    );
+
+    let mut parsed_data: Vec<Gear> = Vec::new();
+    for row in rows {
+        match row.data {
+
+            Some(row_data) => {
+                let data_result: Result<Gear, serde_json::Error>  = serde_json::from_str( row_data.as_ref() );
+                match data_result {
+                    Ok( mut data ) => {
+                        data.id = row.id;
+                        data.created_on = row.created_on;
+                        data.updated_on = row.updated_on;
+                        data.deleted_on = row.deleted_on;
+
+                        data.deleted = row.deleted;
+
+                        data.created_by = row.created_by;
+                        data.updated_by = row.updated_by;
+                        data.deleted_by = row.deleted_by;
+
+                        parsed_data.push( data );
+                    }
+                    Err( err ) => {
+                        println!("Error with data on get_gear {}, {}, {}", row.id, err.to_string(), row_data);
+                    }
+                }
+            }
+            None => {
+
+            }
+        }
+
+    }
+    return parsed_data;
+}
+
+
+
+pub fn get_armor(
+    pool: &Data<Pool>,
+    updated_on: Option<DateTime<Utc>>,
+    book_ids: &Vec<u32>,
+    all: bool,
+) -> Vec<Armor> {
+    let rows = get_chargen_table_data(
+        pool,
+        "chargen_armor".to_owned(),
+        updated_on,
+        book_ids,
+        all,
+    );
+
+    let mut parsed_data: Vec<Armor> = Vec::new();
+    for row in rows {
+        match row.data {
+
+            Some(row_data) => {
+                let data_result: Result<Armor, serde_json::Error>  = serde_json::from_str( row_data.as_ref() );
+                match data_result {
+                    Ok( mut data ) => {
+                        data.id = row.id;
+                        data.created_on = row.created_on;
+                        data.updated_on = row.updated_on;
+                        data.deleted_on = row.deleted_on;
+
+                        data.deleted = row.deleted;
+
+                        data.created_by = row.created_by;
+                        data.updated_by = row.updated_by;
+                        data.deleted_by = row.deleted_by;
+
+                        parsed_data.push( data );
+                    }
+                    Err( err ) => {
+                        println!("Error with data on get_armor {}, {}, {}", row.id, err.to_string(), row_data);
                     }
                 }
             }
