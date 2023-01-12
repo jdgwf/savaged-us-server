@@ -1,4 +1,4 @@
-use crate::{db::{chargen_data::{get_chargen_data, get_hindrances}, users::get_remote_user}, api::auth::ApiKeyOrToken};
+use crate::{db::{chargen_data::{get_chargen_data}, users::get_remote_user}, api::auth::ApiKeyOrToken};
 use mysql::Pool;
 use actix_web:: {
     get,
@@ -7,25 +7,13 @@ use actix_web:: {
     web::Data, HttpRequest,
 
 };
-use savaged_libs::player_character::{hindrance::Hindrance, chargen_data::ChargenData};
+use savaged_libs::player_character::{chargen_data::ChargenData};
 
-#[get("/_api/hindrances-get")]
-pub async fn hindrances_get(
-    pool: Data<Pool>,
-) -> Json<Vec<Hindrance>> {
-
-    let parsed_data = get_hindrances(&pool, None, &Vec::new(), false);
-
-    return actix_web::web::Json(
-        parsed_data
-    );
-}
 
 #[post("/_api/chargen-data-get")]
-pub async fn chargen_data_get(
+pub async fn api_chargen_data_get(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
-    _body: String,
     request: HttpRequest,
 ) -> Json<ChargenData> {
 

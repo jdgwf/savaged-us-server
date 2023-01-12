@@ -4,6 +4,7 @@ extern crate dotenv;
 use actix::Actor;
 use actix_web::HttpRequest;
 use actix_web::http::header;
+use db::users::admin_get_users;
 use mysql::*;
 
 mod utils;
@@ -45,21 +46,25 @@ use api::saves::{
     auth_get_user_saves,
 };
 use api::notifications::{
-    notifications_get,
-    notifications_set_deleted,
-    notifications_set_read,
-    notifications_delete_basic_admin,
-    notifications_set_all_read,
+    api_notifications_get,
+    api_notifications_set_deleted,
+    api_notifications_set_read,
+    api_notifications_delete_basic_admin,
+    api_notifications_set_all_read,
+};
+
+use api::admin::users::{
+    api_admin_users_get,
+    api_admin_users_paging,
 };
 
 use api::data::chargen_data::{
-    hindrances_get,
-    chargen_data_get,
+    api_chargen_data_get,
 };
-use api::data::books::books_get;
+// use api::data::books::books_get;
 
 use api::banners::{
-    banners_get,
+    api_banners_get,
 };
 
 
@@ -275,6 +280,7 @@ async fn main() -> std::io::Result<()> {
                             // Saves Handlers
                             .service( auth_get_user_saves )
 
+
                             // User Settings
                             .service( api_user_token_remove )
                             .service( api_user_token_update_name )
@@ -285,21 +291,25 @@ async fn main() -> std::io::Result<()> {
 
 
                             // User Notification Page Handlers
-                            .service( notifications_set_deleted )
-                            .service( notifications_set_read )
-                            .service( notifications_get )
-                            .service( notifications_delete_basic_admin )
-                            .service( notifications_set_all_read )
+                            .service( api_notifications_set_deleted )
+                            .service( api_notifications_set_read )
+                            .service( api_notifications_get )
+                            .service( api_notifications_delete_basic_admin )
+                            .service( api_notifications_set_all_read )
 
 
                             // Data Endpoints
-                            .service( hindrances_get )
-                            .service( books_get )
-                            .service( chargen_data_get )
+                            // .service( hindrances_get )
+                            // .service( books_get )
+                            .service( api_chargen_data_get )
 
                             // get banners API
-                            .service( banners_get )
+                            .service( api_banners_get )
 
+
+                            // admin API
+                            .service( api_admin_users_get )
+                            .service( api_admin_users_paging )
 
                             // render yew app SSR.
                             .service(

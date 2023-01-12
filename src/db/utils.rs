@@ -1,6 +1,7 @@
-use actix_web::cookie::time::PrimitiveDateTime;
+use actix_web::{cookie::time::PrimitiveDateTime, web::Json};
 use chrono::prelude::*;
 use mysql::Row;
+use savaged_libs::admin_libs::FetchAdminParameters;
 
 
 pub fn mysql_row_to_chrono_utc (
@@ -61,4 +62,55 @@ pub fn mysql_datetime_to_chrono_utc(
     }
 
 }
+
+pub fn admin_current_limit_paging_sql(
+    params: &Json<FetchAdminParameters>,
+) -> String {
+
+
+    let limit = format!("\nLIMIT {}, {}", params.current_page  * params.number_per_page, params.number_per_page);
+    match &params.sort_by {
+        Some( sort_by ) => {
+            let mut sort_dir = "DESC".to_owned();
+            if( params.sort_by_ascending ) {
+                sort_dir = "ASC".to_owned();
+            }
+            return format!("{}\nSORT BY `{}`, {}\n", limit, sort_by, sort_dir);
+        }
+        None => {
+            return limit
+        }
+    }
+}
+
+pub fn admin_filter_where_clause(
+    search_fields: &'static [&'static str],
+    params: &Json<FetchAdminParameters>,
+) -> String {
+
+
+    match &params.filter {
+        Some( filter ) => {
+            let mut rv = "".to_string();
+            if filter.trim() != "" && search_fields.len() > 0 {
+                rv += "\nAND\n (
+                    '1' = '2'
+                ";
+
+
+                for field in search_fields.iter() {
+                    rv += format!("\tOR `{}` like '%{}%' ", field, filter).as_str();
+                }
+
+                rv += ")\n";
+            }
+
+            return rv;
+        }
+        None => {
+            return "".to_string();
+        }
+    }
+}
+
 

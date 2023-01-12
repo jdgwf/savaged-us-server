@@ -18,7 +18,7 @@ use actix_web::HttpRequest;
 use super::auth::ApiKeyOrToken;
 
 #[post("/_api/notifications/get")]
-pub async fn notifications_get(
+pub async fn api_notifications_get(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
     request: HttpRequest,
@@ -66,7 +66,7 @@ pub struct NotificationForm {
 }
 
 #[post("/_api/notifications/set-deleted")]
-pub async fn notifications_set_deleted(
+pub async fn api_notifications_set_deleted(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
     request: HttpRequest,
@@ -146,7 +146,7 @@ pub async fn notifications_set_deleted(
 }
 
 #[post("/_api/notifications/set-read")]
-pub async fn notifications_set_read(
+pub async fn api_notifications_set_read(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
     request: HttpRequest,
@@ -248,7 +248,7 @@ pub async fn notifications_set_read(
 }
 
 #[post("/_api/notifications/set-all-read")]
-pub async fn notifications_set_all_read(
+pub async fn api_notifications_set_all_read(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
     request: HttpRequest,
@@ -331,7 +331,8 @@ pub fn get_notifications_for_user(
                     `message`,
                     `created_by`,
                     `created_on`
-                 from `user_notifications` where `user_id` = {} and `deleted` < 1
+                 from `user_notifications` where `user_id` = {}
+                 and `deleted` < 1
                  order by created_on desc
 
                  ", current_user_id),
@@ -379,7 +380,7 @@ pub fn get_notifications_for_user(
 }
 
 #[post("/_api/notifications/delete-basic-admin")]
-pub async fn notifications_delete_basic_admin(
+pub async fn api_notifications_delete_basic_admin(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
     request: HttpRequest,

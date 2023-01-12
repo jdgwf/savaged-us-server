@@ -1,10 +1,12 @@
 
 use actix_web::cookie::time::PrimitiveDateTime;
+use actix_web::web::Json;
 use mysql::*;
 use mysql::prelude::*;
 use chrono::prelude::*;
+use savaged_libs::admin_libs::{FetchAdminParameters, AdminPagingStatistics};
 use crate::api::notifications::get_notifications_for_user;
-use crate::db::utils::mysql_row_to_chrono_utc;
+use crate::db::utils::{mysql_row_to_chrono_utc, admin_filter_where_clause};
 use crate::utils::encrypt_password;
 
 use actix_web::HttpRequest;
@@ -17,6 +19,15 @@ use actix_web:: {
 use savaged_libs::user::{ User, LoginToken };
 use uuid::Uuid;
 
+use super::utils::admin_current_limit_paging_sql;
+
+
+const USER_SEARCH_FIELDS: &'static [&'static str]  = &[
+    "first_name",
+    "last_name",
+    "email",
+    "username",
+];
 
 // HINT: conn.last_insert_id()
 // HINT: conn.rows_affected()
@@ -112,7 +123,16 @@ pub fn get_user(
             match found_user_result {
                 Some(  row ) => {
 
-                    let user = _make_user_from_row( row );
+                    let mut user = _make_user_from_row( row );
+
+                    let mut new_count = 0;
+                    for msg in &get_notifications_for_user(pool.clone(), user.id) {
+                        if msg.read < 1 {
+                            new_count += 1;
+                        }
+                    }
+                    user.unread_notifications = new_count;
+
                     return Some(user);
                 }
                 None => {
@@ -130,6 +150,210 @@ pub fn get_user(
 
     }
     return None;
+}
+
+
+pub fn admin_get_users(
+    pool: Data<Pool>,
+    paging_params: Json<FetchAdminParameters>,
+) -> Vec<User> {
+
+    let mut data_query = format!("
+        SELECT * from `users`
+        WHERE 1 = 1
+    ");
+
+    let paging = admin_current_limit_paging_sql( &paging_params );
+    // let data_params = params!{
+    //      "1" => 1
+    // };
+
+    data_query = data_query + admin_filter_where_clause(
+        USER_SEARCH_FIELDS,
+        &paging_params
+    ).as_str();
+
+    data_query = data_query + &paging;
+
+    println!("admin_get_users data_query:\n{}", data_query);
+
+    match pool.get_conn() {
+        Ok( mut conn) => {
+
+            let saves_result: Result<Vec<Row>> = conn.exec(
+                data_query,
+                // data_params,
+                (),
+            );
+            match saves_result {
+                Ok(  rows ) => {
+
+                    let mut rv: Vec<User> = Vec::new();
+                    for row in rows {
+                        // let row_data = _make_save_from_row(row, with_cached_data);
+
+                        // if (&row_data.name).to_owned() == "Chi Master".to_owned() {
+                        //     println!("row_data {:?}", row_data );
+                        // }
+
+                        let mut user = _make_user_from_row( row );
+                        rv.push( user );
+                    }
+
+                    println!("rv.len {}", rv.len() );
+                    return rv;
+                }
+                Err( err ) => {
+                    println!("get_user_saves Error 4 {}", err );
+                    return Vec::new();
+                }
+
+            }
+
+        }
+        Err( err ) => {
+            println!("get_user_saves Error 3 {}", err );
+        }
+    }
+    return Vec::new();
+}
+
+pub fn admin_get_users_paging_data(
+    pool: Data<Pool>,
+    paging_params: Json<FetchAdminParameters>,
+) -> AdminPagingStatistics {
+
+    let mut paging: AdminPagingStatistics = AdminPagingStatistics {
+        non_filtered_count: 0,
+        filtered_count: 0,
+    };
+
+    let mut data_query = format!("
+        SELECT count(id) as `count` from `users`
+        WHERE 1 = 1
+    ");
+
+    // let paging = admin_current_limit_paging_sql( paging_params );
+    // let data_params = params!{
+    //      "1" => 1
+    // };
+
+    // data_query = data_query + &paging;
+
+    println!("admin_get_users_paging_data 1 data_query:\n{}", data_query);
+
+
+
+    match pool.get_conn() {
+        Ok( mut conn) => {
+
+            let saves_result: Result<Option<u32>> = conn.exec_first(
+                data_query,
+                // data_params,
+                (),
+            );
+            match saves_result {
+                Ok(  row_opt ) => {
+
+                    match row_opt {
+                        Some( row ) => {
+                            paging.non_filtered_count = row;
+                        }
+                        None => {},
+                    }
+
+                    // let mut rv: Vec<User> = Vec::new();
+                    // for row in rows {
+                    //     // let row_data = _make_save_from_row(row, with_cached_data);
+
+                    //     // if (&row_data.name).to_owned() == "Chi Master".to_owned() {
+                    //     //     println!("row_data {:?}", row_data );
+                    //     // }
+
+                    //     let mut user = _make_user_from_row( row );
+                    //     rv.push( user );
+                    // }
+
+                    // paging
+
+                }
+                Err( err ) => {
+                    println!("get_user_saves Error 4 {}", err );
+                    // return Vec::new();
+                }
+
+            }
+
+        }
+        Err( err ) => {
+            // println!("get_user_saves Error 3 {}", err );
+        }
+    }
+    let mut data_query = format!("
+        SELECT count(id) as `count` from `users`
+        WHERE 1 = 1
+    ");
+
+    // let paging = admin_current_limit_paging_sql( paging_params );
+    // let data_params = params!{
+    //      "1" => 1
+    // };
+
+    // data_query = data_query + &paging;
+    data_query = data_query + admin_filter_where_clause(
+        USER_SEARCH_FIELDS,
+        &paging_params
+    ).as_str();
+
+    println!("admin_get_users_paging_data 2 data_query:\n{}", data_query);
+
+    match pool.get_conn() {
+        Ok( mut conn) => {
+
+            let saves_result: Result<Option<u32>> = conn.exec_first(
+                data_query,
+                // data_params,
+                (),
+            );
+            match saves_result {
+                Ok(  row_opt ) => {
+
+                    match row_opt {
+                        Some( row ) => {
+                            paging.filtered_count = row;
+                        }
+                        None => {},
+                    }
+
+                    // let mut rv: Vec<User> = Vec::new();
+                    // for row in rows {
+                    //     // let row_data = _make_save_from_row(row, with_cached_data);
+
+                    //     // if (&row_data.name).to_owned() == "Chi Master".to_owned() {
+                    //     //     println!("row_data {:?}", row_data );
+                    //     // }
+
+                    //     let mut user = _make_user_from_row( row );
+                    //     rv.push( user );
+                    // }
+
+                    // paging
+
+                }
+                Err( err ) => {
+                    println!("get_user_saves Error 4 {}", err );
+                    // return Vec::new();
+                }
+
+            }
+
+        }
+        Err( err ) => {
+            // println!("get_user_saves Error 3 {}", err );
+        }
+    }
+
+    return paging;
 }
 
 pub fn get_user_from_login_token(
@@ -591,34 +815,35 @@ fn _update_user_last_seen(
 }
 
 fn _make_user_from_row( mut row: Row ) -> User {
-    // let created_on_string: String = row.take_opt("created_on")
-    //     .unwrap_or(Ok("".to_string()))
-    //     .unwrap_or("".to_string());
-    // let deleted_on_string: String = row.take_opt("deleted_on")
-    //     .unwrap_or(Ok("".to_string()))
-    //     .unwrap_or("".to_string());
 
-    // let zombie_on_string: String = row.take_opt("zombie_on")
-    //     .unwrap_or(Ok("".to_string()))
-    //     .unwrap_or("".to_string());
-    // let last_seen_on_string: String = row.take_opt("last_seen_on")
-    //     .unwrap_or(Ok("".to_string()))
-    //     .unwrap_or("".to_string());
-    // // let registration_expires_string: String = row.take_opt("registration_expires")
-    // //     .unwrap_or(Ok("".to_string()))
-    // //     .unwrap_or("".to_string());
-    // let banned_on_string: String = row.take_opt("banned_on")
-    //     .unwrap_or(Ok("".to_string()))
-    //     .unwrap_or("".to_string());
-    // let premium_expires_string: String = row.take_opt("premium_expires")
-    //     .unwrap_or(Ok("".to_string()))
-    //     .unwrap_or("".to_string());
-    // let reset_password_expire_string : String = row.take_opt("reset_password_expire")
-    //     .unwrap_or(Ok("".to_string()))
-    //     .unwrap_or("".to_string());
+    // let mut login_tokens_string: String = "[]".to_string();
+    // match row.take_opt("login_tokens") {
+    //     Some( val_result) => {
+    //         match val_result {
+    //             Ok( val ) => {
+    //                 login_tokens_string = val;
+    //             }
+    //             Err => {
 
-    let login_tokens_string: String = row.take("login_tokens").unwrap();
-    let login_tokens: Vec<LoginToken> = serde_json::from_str( login_tokens_string.as_str() ).unwrap();
+    //             }
+    //         }
+
+    //     }
+    //     None => {
+
+    //     }
+    // }
+    // let login_tokens: Vec<LoginToken> = serde_json::from_str( login_tokens_string.as_str() ).unwrap_or( Vec::new() );
+
+    let mut login_tokens_string = "".to_string();
+    let login_tokens_string_opt = row.take_opt("login_tokens").unwrap();
+    match login_tokens_string_opt {
+
+        Ok( val ) => {login_tokens_string = val; }
+        Err( _ ) => {}
+
+    }
+    let login_tokens: Vec<LoginToken> = serde_json::from_str( login_tokens_string.as_str() ).unwrap_or( Vec::new() );
 
     let mut created_by = 0;
     let created_opt= row.take_opt("created_by").unwrap();
@@ -659,7 +884,43 @@ fn _make_user_from_row( mut row: Row ) -> User {
 
     }
 
+    let mut hidden_banners = "".to_string();
+    let hidden_banners_opt = row.take_opt("hidden_banners").unwrap();
+    match hidden_banners_opt {
 
+        Ok( val ) => {hidden_banners = val; }
+        Err( _ ) => {}
+
+    }
+
+
+    let mut profile_image = "".to_string();
+    let profile_image_opt = row.take_opt("profile_image").unwrap();
+    match profile_image_opt {
+
+        Ok( val ) => {profile_image = val; }
+        Err( _ ) => {}
+
+    }
+
+
+    let mut timezone = "".to_string();
+    let timezone_opt = row.take_opt("timezone").unwrap();
+    match timezone_opt {
+
+        Ok( val ) => {timezone = val; }
+        Err( _ ) => {}
+
+    }
+
+    let mut last_seen_ip= "".to_string();
+    let last_seen_ip_opt = row.take_opt("last_seen_ip").unwrap();
+    match last_seen_ip_opt {
+
+        Ok( val ) => {last_seen_ip = val; }
+        Err( _ ) => {}
+
+    }
     // let mut updated_on_string: String = "".to_string();
         // let updated_on_string: String = row.take_opt("updated_on")
     //     .unwrap_or(Ok("".to_string()))
@@ -699,14 +960,14 @@ fn _make_user_from_row( mut row: Row ) -> User {
         email: row.take("email").unwrap(),
         first_name: row.take("first_name").unwrap(),
         group_ids: Vec::new(), //row.take("group_ids").unwrap(),
-        hidden_banners: row.take("hidden_banners").unwrap(),
+        hidden_banners: hidden_banners.clone(),
         id: row.take("id").unwrap(),
         is_ace: row.take("is_ace").unwrap(),
         is_admin: row.take("is_admin").unwrap(),
         is_developer: row.take("is_developer").unwrap(),
         is_premium: row.take("is_premium").unwrap(),
         last_name: row.take("last_name").unwrap(),
-        last_seen_ip: row.take("last_seen_ip").unwrap(),
+        last_seen_ip: last_seen_ip,
         last_seen_on: mysql_row_to_chrono_utc( &mut row, "last_seen_on"), // row.take("last_seen_on").unwrap(),
         lc_wildcard_reason: row.take("lc_wildcard_reason").unwrap(),
         login_tokens: login_tokens.clone(), //row.take("login_tokens").unwrap(),
@@ -717,14 +978,14 @@ fn _make_user_from_row( mut row: Row ) -> User {
         partner_id: row.take("partner_id").unwrap(),
         paypal_payment_id: row.take("paypal_payment_id").unwrap(),
         premium_expires: mysql_row_to_chrono_utc( &mut row, "premium_expires"), // row.take("premium_expires").unwrap(),
-        profile_image: row.take("profile_image").unwrap(),
+        profile_image: profile_image,
         reset_password_expire: mysql_row_to_chrono_utc( &mut row, "reset_password_expire"), // row.take("reset_password_expire").unwrap(),
         share_bio: share_bio,
         share_display_name: row.take("share_display_name").unwrap(),
         share_show_profile_image: row.take("share_show_profile_image").unwrap(),
         show_user_page: row.take("show_user_page").unwrap(),
         theme_css: row.take("theme_css").unwrap(),
-        timezone: row.take("timezone").unwrap(),
+        timezone: timezone,
         turn_off_advance_limits: row.take("turn_off_advance_limits").unwrap(),
         twitter: row.take("twitter").unwrap(),
         updated_by: updated_by,

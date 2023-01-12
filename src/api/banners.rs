@@ -12,7 +12,7 @@ use super::super::db::banners::{
 };
 
 #[get("/_api/banners/get")]
-pub async fn banners_get(
+pub async fn api_banners_get(
     pool: Data<Pool>,
 ) -> Json<Vec<Banner>> {
     return actix_web::web::Json(get_banners( pool ));
