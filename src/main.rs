@@ -58,6 +58,11 @@ use api::admin::users::{
     api_admin_users_paging,
 };
 
+use api::admin::game_data::{
+    api_admin_game_data_get,
+    api_admin_game_data_paging,
+};
+
 use api::data::chargen_data::{
     api_chargen_data_get,
 };
@@ -120,6 +125,15 @@ async fn main() -> std::io::Result<()> {
         "/me/api-key",
         "/me/saves",
         "/me/campaigns",
+
+        "/admin/",
+        "/admin/users/",
+        "/admin/game-data/",
+        "/admin/game-data/hindrances/",
+        "/admin",
+        "/admin/users",
+        "/admin/game-data",
+        "/admin/game-data/hindrances",
     ];
 
     dotenv().ok();
@@ -310,6 +324,8 @@ async fn main() -> std::io::Result<()> {
                             // admin API
                             .service( api_admin_users_get )
                             .service( api_admin_users_paging )
+                            .service( api_admin_game_data_get )
+                            .service( api_admin_game_data_paging )
 
                             // render yew app SSR.
                             .service(

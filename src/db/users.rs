@@ -123,7 +123,7 @@ pub fn get_user(
             match found_user_result {
                 Some(  row ) => {
 
-                    let mut user = _make_user_from_row( row );
+                    let mut user = make_user_from_row( row, "".to_owned() );
 
                     let mut new_count = 0;
                     for msg in &get_notifications_for_user(pool.clone(), user.id) {
@@ -196,11 +196,11 @@ pub fn admin_get_users(
                         //     println!("row_data {:?}", row_data );
                         // }
 
-                        let mut user = _make_user_from_row( row );
+                        let mut user = make_user_from_row( row, "".to_owned() );
                         rv.push( user );
                     }
 
-                    println!("rv.len {}", rv.len() );
+                    // println!("rv.len {}", rv.len() );
                     return rv;
                 }
                 Err( err ) => {
@@ -240,7 +240,7 @@ pub fn admin_get_users_paging_data(
 
     // data_query = data_query + &paging;
 
-    println!("admin_get_users_paging_data 1 data_query:\n{}", data_query);
+    // println!("admin_get_users_paging_data 1 data_query:\n{}", data_query);
 
 
 
@@ -270,7 +270,7 @@ pub fn admin_get_users_paging_data(
                     //     //     println!("row_data {:?}", row_data );
                     //     // }
 
-                    //     let mut user = _make_user_from_row( row );
+                    //     let mut user = make_user_from_row( row );
                     //     rv.push( user );
                     // }
 
@@ -304,8 +304,8 @@ pub fn admin_get_users_paging_data(
         USER_SEARCH_FIELDS,
         &paging_params
     ).as_str();
-
-    println!("admin_get_users_paging_data 2 data_query:\n{}", data_query);
+//
+    // println!("admin_get_users_paging_data 2 data_query:\n{}", data_query);
 
     match pool.get_conn() {
         Ok( mut conn) => {
@@ -333,7 +333,7 @@ pub fn admin_get_users_paging_data(
                     //     //     println!("row_data {:?}", row_data );
                     //     // }
 
-                    //     let mut user = _make_user_from_row( row );
+                    //     let mut user = make_user_from_row( row );
                     //     rv.push( user );
                     // }
 
@@ -396,7 +396,7 @@ pub fn get_user_from_login_token(
                 match found_user_result {
                     Some(  row ) => {
 
-                        let mut user = _make_user_from_row( row );
+                        let mut user = make_user_from_row( row, "".to_owned() );
 
                         let mut new_count = 0;
                         for msg in &get_notifications_for_user(pool.clone(), user.id) {
@@ -446,7 +446,7 @@ pub fn get_user_from_api_key(
             match found_user_result {
                 Some(  row ) => {
 
-                    let user = _make_user_from_row( row );
+                    let user = make_user_from_row( row, "".to_owned() );
                     return Some(user);
                 }
                 None => {
@@ -814,29 +814,13 @@ fn _update_user_last_seen(
     }
 }
 
-fn _make_user_from_row( mut row: Row ) -> User {
-
-    // let mut login_tokens_string: String = "[]".to_string();
-    // match row.take_opt("login_tokens") {
-    //     Some( val_result) => {
-    //         match val_result {
-    //             Ok( val ) => {
-    //                 login_tokens_string = val;
-    //             }
-    //             Err => {
-
-    //             }
-    //         }
-
-    //     }
-    //     None => {
-
-    //     }
-    // }
-    // let login_tokens: Vec<LoginToken> = serde_json::from_str( login_tokens_string.as_str() ).unwrap_or( Vec::new() );
+pub fn make_user_from_row(
+    mut row: Row,
+    prefix: String,
+) -> User {
 
     let mut login_tokens_string = "".to_string();
-    let login_tokens_string_opt = row.take_opt("login_tokens").unwrap();
+    let login_tokens_string_opt = row.take_opt( (prefix.to_owned() + &"login_tokens").as_str() ).unwrap();
     match login_tokens_string_opt {
 
         Ok( val ) => {login_tokens_string = val; }
@@ -846,7 +830,7 @@ fn _make_user_from_row( mut row: Row ) -> User {
     let login_tokens: Vec<LoginToken> = serde_json::from_str( login_tokens_string.as_str() ).unwrap_or( Vec::new() );
 
     let mut created_by = 0;
-    let created_opt= row.take_opt("created_by").unwrap();
+    let created_opt= row.take_opt( (prefix.to_owned() + &"created_by").as_str() ).unwrap();
     match created_opt {
 
         Ok( val ) => {created_by = val;}
@@ -854,11 +838,11 @@ fn _make_user_from_row( mut row: Row ) -> User {
 
     }
     let mut updated_by = 0;
-    let updated_opt = row.take_opt("updated_by").unwrap();
+    let updated_opt = row.take_opt( (prefix.to_owned() + &"updated_by").as_str() ).unwrap();
     match updated_opt {
 
         Ok( val ) => {
-            println!("updated_by val {:?}", val );
+            // println!("updated_by val {:?}", val );
             updated_by = val;
         }
         Err( err ) => {
@@ -867,7 +851,7 @@ fn _make_user_from_row( mut row: Row ) -> User {
 
     }
     let mut deleted_by = 0;
-    let deleted_opt = row.take_opt("deleted_by").unwrap();
+    let deleted_opt = row.take_opt( (prefix.to_owned() + &"deleted_by").as_str() ).unwrap();
     match deleted_opt {
 
         Ok( val ) => {deleted_by = val;}
@@ -876,7 +860,7 @@ fn _make_user_from_row( mut row: Row ) -> User {
     }
 
     let mut share_bio = "".to_string();
-    let share_bio_opt = row.take_opt("share_bio").unwrap();
+    let share_bio_opt = row.take_opt( (prefix.to_owned() + &"share_bio").as_str() ).unwrap();
     match share_bio_opt {
 
         Ok( val ) => {share_bio = val; }
@@ -885,7 +869,7 @@ fn _make_user_from_row( mut row: Row ) -> User {
     }
 
     let mut hidden_banners = "".to_string();
-    let hidden_banners_opt = row.take_opt("hidden_banners").unwrap();
+    let hidden_banners_opt = row.take_opt( (prefix.to_owned() + &"hidden_banners").as_str() ).unwrap();
     match hidden_banners_opt {
 
         Ok( val ) => {hidden_banners = val; }
@@ -895,7 +879,7 @@ fn _make_user_from_row( mut row: Row ) -> User {
 
 
     let mut profile_image = "".to_string();
-    let profile_image_opt = row.take_opt("profile_image").unwrap();
+    let profile_image_opt = row.take_opt( (prefix.to_owned() + &"profile_image").as_str() ).unwrap();
     match profile_image_opt {
 
         Ok( val ) => {profile_image = val; }
@@ -905,7 +889,7 @@ fn _make_user_from_row( mut row: Row ) -> User {
 
 
     let mut timezone = "".to_string();
-    let timezone_opt = row.take_opt("timezone").unwrap();
+    let timezone_opt = row.take_opt( (prefix.to_owned() + &"timezone").as_str() ).unwrap();
     match timezone_opt {
 
         Ok( val ) => {timezone = val; }
@@ -914,89 +898,77 @@ fn _make_user_from_row( mut row: Row ) -> User {
     }
 
     let mut last_seen_ip= "".to_string();
-    let last_seen_ip_opt = row.take_opt("last_seen_ip").unwrap();
+    let last_seen_ip_opt = row.take_opt( (prefix.to_owned() + &"last_seen_ip").as_str() ).unwrap();
     match last_seen_ip_opt {
 
         Ok( val ) => {last_seen_ip = val; }
         Err( _ ) => {}
 
     }
-    // let mut updated_on_string: String = "".to_string();
-        // let updated_on_string: String = row.take_opt("updated_on")
-    //     .unwrap_or(Ok("".to_string()))
-    //     .unwrap_or("".to_string());
 
-    // let updated_on_opt = row.take_opt("updated_on").unwrap();
-    // let mut updated_on: String = "".to_owned();
-    // match updated_on_opt {
+    let mut discord_id= "".to_string();
+    let discord_id_opt = row.take_opt( (prefix.to_owned() + &"discord_id").as_str() ).unwrap();
+    match discord_id_opt {
 
-    //     Ok( val ) => {
-    //         let naive: PrimitiveDateTime = val;
+        Ok( val ) => {discord_id = val; }
+        Err( _ ) => {}
 
-    //         updated_on = naive.to_string().replace(".0", "");
-    //         // updated_on = Some(val);
-    //         // println!("updated_on val {:?} {:?}", naive, &updated_on_string );
-    //     }
-    //     Err( _err ) => {
-    //         // println!("updated_on_opt error {:?}", err );
-    //     }
-
-    // }
+    }
 
     let user = User{
-        activated: row.take("activated").unwrap(),
-        api_key: row.take("api_key").unwrap(),
-        banned: row.take("banned").unwrap(),
-        banned_by: row.take("banned_by").unwrap(),
-        banned_on: mysql_row_to_chrono_utc(&mut row, "bannned_on"), // row.take("banned_on").unwrap(),
-        banned_reason: row.take("banned_reason").unwrap(),
+        activated: row.take( ( prefix.to_owned() + &"activated").as_str() ).unwrap(),
+        api_key: row.take( ( prefix.to_owned() + &"api_key").as_str() ).unwrap(),
+        banned: row.take( ( prefix.to_owned() + &"banned").as_str() ).unwrap(),
+        banned_by: row.take( ( prefix.to_owned() + &"banned_by").as_str() ).unwrap(),
+        banned_on: mysql_row_to_chrono_utc(&mut row, "banned_on"), // row.take( ( prefix.to_owned() + &"banned_on").unwrap(),
+        banned_reason: row.take( ( prefix.to_owned() + &"banned_reason").as_str() ).unwrap(),
         created_by: created_by,
         created_on: mysql_row_to_chrono_utc(&mut row, "created_on"), // created_on_dtfo.with_timezone( &Utc),
-        default_username: row.take("default_username").unwrap(),
-        deleted: row.take("deleted").unwrap(),
+        default_username: row.take( ( prefix.to_owned() + &"default_username").as_str() ).unwrap(),
+        deleted: row.take( ( prefix.to_owned() + &"deleted").as_str() ).unwrap(),
         deleted_by: deleted_by,
-        deleted_on: mysql_row_to_chrono_utc( &mut row, "deleted_on"), // row.take("deleted_on").unwrap(),
-        discord_id: row.take("discord_id").unwrap(),
-        email: row.take("email").unwrap(),
-        first_name: row.take("first_name").unwrap(),
-        group_ids: Vec::new(), //row.take("group_ids").unwrap(),
+        deleted_on: mysql_row_to_chrono_utc( &mut row, "deleted_on"), // row.take( ( prefix.to_owned() + &"deleted_on").unwrap(),
+        discord_id: discord_id,
+        email: row.take( ( prefix.to_owned() + &"email").as_str() ).unwrap(),
+        first_name: row.take( ( prefix.to_owned() + &"first_name").as_str() ).unwrap(),
+        group_ids: Vec::new(), //row.take( ( prefix.to_owned() + &"group_ids").unwrap(),
         hidden_banners: hidden_banners.clone(),
-        id: row.take("id").unwrap(),
-        is_ace: row.take("is_ace").unwrap(),
-        is_admin: row.take("is_admin").unwrap(),
-        is_developer: row.take("is_developer").unwrap(),
-        is_premium: row.take("is_premium").unwrap(),
-        last_name: row.take("last_name").unwrap(),
+        id: row.take( ( prefix.to_owned() + &"id").as_str() ).unwrap(),
+        is_ace: row.take( ( prefix.to_owned() + &"is_ace").as_str() ).unwrap(),
+        is_admin: row.take( ( prefix.to_owned() + &"is_admin").as_str() ).unwrap(),
+        is_developer: row.take( ( prefix.to_owned() + &"is_developer").as_str() ).unwrap(),
+        is_premium: row.take( ( prefix.to_owned() + &"is_premium").as_str() ).unwrap(),
+        last_name: row.take( ( prefix.to_owned() + &"last_name").as_str() ).unwrap(),
         last_seen_ip: last_seen_ip,
-        last_seen_on: mysql_row_to_chrono_utc( &mut row, "last_seen_on"), // row.take("last_seen_on").unwrap(),
-        lc_wildcard_reason: row.take("lc_wildcard_reason").unwrap(),
-        login_tokens: login_tokens.clone(), //row.take("login_tokens").unwrap(),
-        notes: "".to_string(), // row.take("notes").unwrap(),
-        notify_email: row.take("notify_email").unwrap(),
-        image_url: "".to_string(), // row.take("image_url").unwrap(),
-        number_years: row.take("number_years").unwrap(),
-        partner_id: row.take("partner_id").unwrap(),
-        paypal_payment_id: row.take("paypal_payment_id").unwrap(),
-        premium_expires: mysql_row_to_chrono_utc( &mut row, "premium_expires"), // row.take("premium_expires").unwrap(),
+        last_seen_on: mysql_row_to_chrono_utc( &mut row, "last_seen_on"), // row.take( ( prefix.to_owned() + &"last_seen_on").unwrap(),
+        lc_wildcard_reason: row.take( ( prefix.to_owned() + &"lc_wildcard_reason").as_str() ).unwrap(),
+        login_tokens: login_tokens.clone(), //row.take( ( prefix.to_owned() + &"login_tokens").unwrap(),
+        notes: "".to_string(), // row.take( ( prefix.to_owned() + &"notes").unwrap(),
+        notify_email: row.take( ( prefix.to_owned() + &"notify_email").as_str() ).unwrap(),
+        image_url: "".to_string(), // row.take( ( prefix.to_owned() + &"image_url").unwrap(),
+        number_years: row.take( ( prefix.to_owned() + &"number_years").as_str() ).unwrap(),
+        partner_id: row.take( ( prefix.to_owned() + &"partner_id").as_str() ).unwrap(),
+        paypal_payment_id: row.take( ( prefix.to_owned() + &"paypal_payment_id").as_str() ).unwrap(),
+        premium_expires: mysql_row_to_chrono_utc( &mut row, "premium_expires"), // row.take( ( prefix.to_owned() + &"premium_expires").unwrap(),
         profile_image: profile_image,
-        reset_password_expire: mysql_row_to_chrono_utc( &mut row, "reset_password_expire"), // row.take("reset_password_expire").unwrap(),
+        reset_password_expire: mysql_row_to_chrono_utc( &mut row, "reset_password_expire"), // row.take( ( prefix.to_owned() + &"reset_password_expire").unwrap(),
         share_bio: share_bio,
-        share_display_name: row.take("share_display_name").unwrap(),
-        share_show_profile_image: row.take("share_show_profile_image").unwrap(),
-        show_user_page: row.take("show_user_page").unwrap(),
-        theme_css: row.take("theme_css").unwrap(),
+        share_display_name: row.take( ( prefix.to_owned() + &"share_display_name").as_str() ).unwrap(),
+        share_show_profile_image: row.take( ( prefix.to_owned() + &"share_show_profile_image").as_str() ).unwrap(),
+        show_user_page: row.take( ( prefix.to_owned() + &"show_user_page").as_str() ).unwrap(),
+        theme_css: row.take( ( prefix.to_owned() + &"theme_css").as_str() ).unwrap(),
         timezone: timezone,
-        turn_off_advance_limits: row.take("turn_off_advance_limits").unwrap(),
-        twitter: row.take("twitter").unwrap(),
+        turn_off_advance_limits: row.take( ( prefix.to_owned() + &"turn_off_advance_limits").as_str() ).unwrap(),
+        twitter: row.take( ( prefix.to_owned() + &"twitter").as_str() ).unwrap(),
         updated_by: updated_by,
         // updated_on: Central.from_local_datetime(&updated_on).with_timezone(&Utc).clone(),
         // updated_on: Some(DateTime::from_utc(DateTime::parse_from_rfc3339( &updated_on.to_string() ).unwrap().naive_utc(), Utc)),
         updated_on: mysql_row_to_chrono_utc( &mut row, "updated_on"), // updated_on_dtfo.with_timezone( &Utc),
-        username: row.take("username").unwrap(),
-        version_of: row.take("version_of").unwrap(),
-        zombie: row.take("zombie").unwrap(),
-        unread_notifications: 0, // row.take("unread_notifications").unwrap(),
-        zombie_on: mysql_row_to_chrono_utc( &mut row, "zombie_on"), // row.take("zombie_on").unwrap(),
+        username: row.take( ( prefix.to_owned() + &"username").as_str() ).unwrap(),
+        version_of: row.take( ( prefix.to_owned() + &"version_of").as_str() ).unwrap(),
+        zombie: row.take( ( prefix.to_owned() + &"zombie").as_str() ).unwrap(),
+        unread_notifications: 0, // row.take( ( prefix.to_owned() + &"unread_notifications").unwrap(),
+        zombie_on: mysql_row_to_chrono_utc( &mut row, "zombie_on"), // row.take( ( prefix.to_owned() + &"zombie_on").unwrap(),
     };
     user.get_image("");
     return user;
@@ -1058,9 +1030,9 @@ pub fn log_user_in(
             match found_user_result {
                 Some(  mut row ) => {
                     return_value.error = "".to_string();
-                    return_value.user_id = row.take("id").unwrap();
-                    return_value.banned = row.take("banned").unwrap();
-                    return_value.banned_reason = row.take("banned_reason").unwrap();
+                    return_value.user_id = row.take(  "id" ).unwrap();
+                    return_value.banned = row.take(  "banned" ).unwrap();
+                    return_value.banned_reason = row.take( "banned_reason" ).unwrap();
                 }
                 None => {
                     return_value.error = "".to_string();
