@@ -6,6 +6,7 @@ use actix_web:: {
     // web::Json,
     web::Data,
 };
+use savaged_libs::admin_libs::BookList;
 use savaged_libs::book::Book;
 use serde::{Serialize, Deserialize, Serializer, Deserializer};
 use savaged_libs::utils::float_to_int;
@@ -155,6 +156,161 @@ pub fn get_books(
     return Vec::new();
 }
 
+
+pub fn get_books_list(
+    pool: &Data<Pool>,
+) -> Vec<BookList> {
+
+    let mut data_query = "
+    SELECT
+        id,
+        data,
+
+        created_on,
+        created_by,
+
+        updated_on,
+        updated_by,
+
+        deleted,
+        deleted_on,
+        deleted_by
+
+        from books
+
+        where  version_of = 0
+        and deleted < 1
+        order by `name`
+".to_owned();
+
+    // if !all {
+    //     data_query += &" and `books`.`active` > 0\n";
+    // }
+    // data_query += &" and ((\n";
+    // if access_admin {
+    //     data_query += &" `books`.`access_admin` > 0\n";
+
+    // } else if access_developer {
+    //     data_query += &" `books`.`access_developer` > 0\n";
+    // } else if access_wildcard {
+    //     data_query += &" `books`.`access_wildcard` > 0\n";
+    // } else if access_registered {
+    //     data_query += &" `books`.`access_registered` > 0\n";
+    // } else {
+    //     data_query += &" `books`.`access_anonymous` > 0\n";
+    // }
+    // data_query += format!(" ) or  `books`.`created_by` like {})", current_user_id).as_ref();
+
+    // println!("{}", data_query);
+    match pool.get_conn() {
+        Ok( mut conn) => {
+            let get_row_data_result = conn
+            .query_map(
+                data_query,
+                |(
+                    id,
+                    data,
+
+                    created_on,
+                    created_by,
+
+                    updated_on,
+                    updated_by,
+
+                    deleted,
+                    deleted_on,
+                    deleted_by
+
+                ): (
+                    u32,
+                    Option<String>,
+
+
+                    String,
+                    u32,
+
+                    String,
+                    u32,
+
+                    u32,
+                    String,
+                    u32,
+                ) | {
+
+                    let mut deleted_bool = false;
+                    if deleted > 0 {
+                        deleted_bool = true;
+                    }
+
+                    match data {
+                        Some( row_data) => {
+                            let book_result: Result<Book, serde_json::Error> = serde_json::from_str( row_data.as_ref() );
+                            match book_result {
+                                Ok( mut book ) => {
+                                    book.created_on = mysql_datetime_to_chrono_utc( created_on );
+                                    book.updated_on = mysql_datetime_to_chrono_utc( updated_on );
+                                    book.deleted_on = mysql_datetime_to_chrono_utc( deleted_on );
+                                    book.created_by = created_by;
+                                    book.deleted = deleted_bool;
+                                    book.deleted_by = deleted_by;
+                                    book.updated_by = updated_by;
+                                    book.id = id;
+
+                                    return  BookList{
+                                        id: id,
+                                        name: book.name.to_owned(),
+                                        short_name: book.short_name.to_owned(),
+                                        primary: book.primary,
+                                        core: book.core,
+                                    };
+                                }
+                                Err( err ) => {
+                                    println!("Error with data on book {}, {}, {}", id, err.to_string(), row_data);
+                                    return BookList {
+                                        id: 0,
+                                        name: "".to_string(),
+                                        short_name: "".to_string(),
+                                        primary: false,
+                                        core: false,
+                                    };
+                                }
+                            }
+
+
+
+
+                        }
+                        None => {
+                            return BookList {
+                                id: 0,
+                                name: "".to_string(),
+                                short_name: "".to_string(),
+                                primary: false,
+                                core: false,
+                            };
+                        }
+                    }
+
+
+                },
+            );
+            match get_row_data_result {
+                Ok( get_row_data ) => {
+                    return get_row_data;
+                }
+
+                Err( err ) => {
+                    println!("get_books Error 4 {}", err );
+                }
+            }
+
+        }
+        Err( err ) => {
+            println!("get_books Error 3 {}", err );
+        }
+    }
+    return Vec::new();
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowData {

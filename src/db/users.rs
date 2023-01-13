@@ -170,7 +170,9 @@ pub fn admin_get_users(
 
     data_query = data_query + admin_filter_where_clause(
         USER_SEARCH_FIELDS,
-        &paging_params
+        &paging_params,
+        false,
+        false,
     ).as_str();
 
     data_query = data_query + &paging;
@@ -226,6 +228,7 @@ pub fn admin_get_users_paging_data(
     let mut paging: AdminPagingStatistics = AdminPagingStatistics {
         non_filtered_count: 0,
         filtered_count: 0,
+        book_list: Vec::new(),
     };
 
     let mut data_query = format!("
@@ -302,7 +305,9 @@ pub fn admin_get_users_paging_data(
     // data_query = data_query + &paging;
     data_query = data_query + admin_filter_where_clause(
         USER_SEARCH_FIELDS,
-        &paging_params
+        &paging_params,
+        false,
+        false,
     ).as_str();
 //
     // println!("admin_get_users_paging_data 2 data_query:\n{}", data_query);

@@ -86,6 +86,8 @@ pub fn admin_current_limit_paging_sql(
 pub fn admin_filter_where_clause(
     search_fields: &'static [&'static str],
     params: &Json<FetchAdminParameters>,
+    remove_primary: bool,
+    uses_book_id: bool,
 ) -> String {
 
 
@@ -98,17 +100,40 @@ pub fn admin_filter_where_clause(
                 ";
 
 
-                for field in search_fields.iter() {
-                    rv += format!("\tOR `{}` like '%{}%' ", field, filter).as_str();
+                for mut field in search_fields.iter() {
+                    if remove_primary {
+                        rv += format!("\tOR `{}` like '%{}%' ", field.replace("primary`.`", ""), filter).as_str();
+                    } else {
+                        rv += format!("\tOR `{}` like '%{}%' ", field, filter).as_str();
+                    }
+
                 }
 
                 rv += ")\n";
             }
 
+            if uses_book_id && params.filter_book > 0 {
+                if remove_primary {
+                    rv += format!("\tAND `{}` = '{}' ", "primary`.`book_id".replace("primary`.`", ""), params.filter_book).as_str();
+                } else {
+                    rv += format!("\tAND `{}` = '{}' ", "primary`.`book_id", params.filter_book).as_str();
+                }
+
+            }
+
             return rv;
         }
         None => {
-            return "".to_string();
+            if uses_book_id && params.filter_book > 0 {
+                if remove_primary {
+                    return format!("\tAND `{}` = '{}' ", "primary`.`book_id".replace("primary`.`", ""), params.filter_book);
+                } else {
+                    return format!("\tAND `{}` = '{}' ", "primary`.`book_id", params.filter_book);
+                }
+
+            } else {
+                return "".to_owned();
+            }
         }
     }
 }

@@ -100,6 +100,7 @@ pub async fn api_admin_users_paging(
         AdminPagingStatistics {
             non_filtered_count: 0,
             filtered_count: 0,
+            book_list: Vec::new(),
         }
      );
 }

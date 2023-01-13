@@ -9,7 +9,7 @@ use savaged_libs::game_data::GameData;
 use savaged_libs::public_user_info::PublicUserInfo;
 use crate::db::utils::{mysql_row_to_chrono_utc, admin_filter_where_clause};
 use crate::utils::encrypt_password;
-
+use crate::db::books::get_books_list;
 use actix_web::HttpRequest;
 use actix_web:: {
 
@@ -23,7 +23,7 @@ use super::users::make_user_from_row;
 use super::utils::admin_current_limit_paging_sql;
 
 const DATA_SEARCH_FIELDS: &'static [&'static str]  = &[
-    "name",
+    "primary`.`name",
     // "summary",
 ];
 
@@ -37,11 +37,12 @@ pub fn db_admin_get_game_data_paging_data(
     let mut paging: AdminPagingStatistics = AdminPagingStatistics {
         non_filtered_count: 0,
         filtered_count: 0,
+        book_list: get_books_list(&pool),
     };
 
     let mut data_query = format!("
         SELECT count(id) as `count` from `chargen_{}`
-        WHERE 1 = 1
+        WHERE `deleted` < 1 and `version_of` = 0
     ", &table);
 
     // let paging = admin_current_limit_paging_sql( paging_params );
@@ -102,7 +103,7 @@ pub fn db_admin_get_game_data_paging_data(
     }
     let mut data_query = format!("
         SELECT count(id) as `count` from `chargen_{}`
-        WHERE 1 = 1
+        WHERE `deleted` < 1 and `version_of` = 0
     ", &table);
 
     // let paging = admin_current_limit_paging_sql( paging_params );
@@ -113,7 +114,9 @@ pub fn db_admin_get_game_data_paging_data(
     // data_query = data_query + &paging;
     data_query = data_query + admin_filter_where_clause(
         DATA_SEARCH_FIELDS,
-        &paging_params
+        &paging_params,
+        true,
+        true,
     ).as_str();
 //
     // println!("admin_get_game_data_paging_data 2 data_query:\n{}", data_query);
@@ -242,6 +245,7 @@ pub fn db_admin_get_game_data(
         `created_by_user`.`turn_off_advance_limits` as `created_by_user_turn_off_advance_limits`,
         `created_by_user`.`notes` as `created_by_user_notes`,
         `created_by_user`.`login_tokens` as `created_by_user_login_tokens`,
+
         `deleted_by_user`.`id` as `deleted_by_user_id`,
         `deleted_by_user`.`zombie` as `deleted_by_user_zombie`,
         `deleted_by_user`.`zombie_on` as `deleted_by_user_zombie_on`,
@@ -356,6 +360,8 @@ pub fn db_admin_get_game_data(
         left join `users` `updated_by_user` on `primary`.updated_by = `updated_by_user`.id
         left join `books` `book` on `primary`.book_id = `book`.id
         WHERE `primary`.`deleted` < 1 and `primary`.`version_of` = 0
+
+
     ", &table);
 
     let paging = admin_current_limit_paging_sql( &paging_params );
@@ -363,14 +369,18 @@ pub fn db_admin_get_game_data(
     //      "1" => 1
     // };
 
+
+
     data_query = data_query + admin_filter_where_clause(
         DATA_SEARCH_FIELDS,
-        &paging_params
+        &paging_params,
+        false,
+        true,
     ).as_str();
 
-    data_query = data_query + &paging;
+    data_query = data_query + &"\norder by `book`.`name` ASC, `primary`.`name` ASC\n" + &paging;
 
-    println!("admin_get_game_data data_query:\n{}", data_query);
+    // println!("admin_get_game_data data_query:\n{}", data_query);
 
     match pool.get_conn() {
         Ok( mut conn) => {
@@ -426,10 +436,11 @@ fn _make_game_data_struct( mut row: Row ) -> GameData {
     match created_opt {
 
         Ok( val ) => {
+            // println!("created_by val {:?}", val );
             created_by = val;
             if val > 0 {
                 let user = make_user_from_row(row.clone(), "created_by_user_".to_owned());
-                created_by_user = Some(user.get_public_info());
+                created_by_user = Some(user.get_public_info(true));
             }
         }
         Err( _ ) => {}
@@ -445,7 +456,7 @@ fn _make_game_data_struct( mut row: Row ) -> GameData {
             updated_by = val;
             if val > 0 {
                 let user = make_user_from_row(row.clone(), "updated_by_user_".to_owned());
-                updated_by_user = Some(user.get_public_info());
+                updated_by_user = Some(user.get_public_info(true));
             }
         }
         Err( err ) => {
@@ -462,7 +473,7 @@ fn _make_game_data_struct( mut row: Row ) -> GameData {
             deleted_by = val;
             if val > 0 {
                 let user = make_user_from_row(row.clone(), "deleted_by_user_".to_owned());
-                deleted_by_user = Some(user.get_public_info());
+                deleted_by_user = Some(user.get_public_info(true));
             }
         }
         Err( _ ) => {}
@@ -512,10 +523,11 @@ fn _make_game_data_struct( mut row: Row ) -> GameData {
         deleted: row.take("primary_deleted").unwrap(),
         deleted_by: deleted_by,
         deleted_on: mysql_row_to_chrono_utc( &mut row, "primary_deleted_on"), // row.take("deleted_on").unwrap(),
-        updated_by: updated_by,
 
+        updated_by: updated_by,
         updated_on: mysql_row_to_chrono_utc( &mut row, "primary_updated_on"), // updated_on_dtfo.with_timezone( &Utc),
         version_of: row.take("primary_version_of").unwrap(),
+
         book_id: row.take("primary_book_id").unwrap(),
         id: row.take("primary_id").unwrap(),
 
