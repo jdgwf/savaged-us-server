@@ -9,7 +9,6 @@ use savaged_libs::game_data::GameData;
 use savaged_libs::public_user_info::PublicUserInfo;
 use crate::db::utils::{mysql_row_to_chrono_utc, admin_filter_where_clause};
 use crate::utils::encrypt_password;
-use crate::db::books::get_books_list;
 use actix_web::HttpRequest;
 use actix_web:: {
 
@@ -19,6 +18,7 @@ use actix_web:: {
 };
 use uuid::Uuid;
 
+use super::books::get_books;
 use super::users::make_user_from_row;
 use super::utils::admin_current_limit_paging_sql;
 
@@ -26,7 +26,6 @@ const DATA_SEARCH_FIELDS: &'static [&'static str]  = &[
     "primary`.`name",
     // "summary",
 ];
-
 
 pub fn db_admin_get_game_data_paging_data(
     pool: Data<Pool>,
@@ -37,8 +36,19 @@ pub fn db_admin_get_game_data_paging_data(
     let mut paging: AdminPagingStatistics = AdminPagingStatistics {
         non_filtered_count: 0,
         filtered_count: 0,
-        book_list: get_books_list(&pool),
+        book_list: None,
     };
+
+    // let needs_book_list = paging_params.needs_book_list;
+
+    // match paging_params.needs_book_list {
+    //     Some( nbl ) => {
+    //         needs_book_list = nbl;
+    //     }
+    //     None => {
+
+    //     }
+    // }
 
     let mut data_query = format!("
         SELECT count(id) as `count` from `chargen_{}`
@@ -53,8 +63,6 @@ pub fn db_admin_get_game_data_paging_data(
     // data_query = data_query + &paging;
 
     // println!("admin_get_game_data_paging_data 1 data_query:\n{}", data_query);
-
-
 
     match pool.get_conn() {
         Ok( mut conn) => {
@@ -153,6 +161,10 @@ pub fn db_admin_get_game_data_paging_data(
 
                     // paging
 
+                    if paging_params.needs_book_list {
+                        paging.book_list = Some(get_books(&pool, 0, None, false, false, false, false, true));
+                    }
+
                 }
                 Err( err ) => {
                     println!("get_item_saves Error 4 {}", err );
@@ -169,7 +181,6 @@ pub fn db_admin_get_game_data_paging_data(
 
     return paging;
 }
-
 
 pub fn db_admin_get_game_data(
     pool: Data<Pool>,
@@ -361,15 +372,12 @@ pub fn db_admin_get_game_data(
         left join `books` `book` on `primary`.book_id = `book`.id
         WHERE `primary`.`deleted` < 1 and `primary`.`version_of` = 0
 
-
     ", &table);
 
     let paging = admin_current_limit_paging_sql( &paging_params );
     // let data_params = params!{
     //      "1" => 1
     // };
-
-
 
     data_query = data_query + admin_filter_where_clause(
         DATA_SEARCH_FIELDS,
@@ -390,7 +398,6 @@ pub fn db_admin_get_game_data(
                 // data_params,
                 (),
             );
-
 
             match saves_result {
                 Ok(  rows ) => {

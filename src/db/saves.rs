@@ -59,8 +59,6 @@ pub fn get_user_saves(
 
         uuid_virtual
 
-
-
         from saves
 
         WHERE created_by = :user_id
@@ -111,8 +109,6 @@ pub fn get_user_saves(
     }
     return Vec::new();
 }
-
-
 
 fn _make_save_from_row(
     mut row: Row,
@@ -246,8 +242,6 @@ fn _make_save_from_row(
 //     .unwrap_or(Ok("".to_string()))
 //     .unwrap_or("".to_string());
 
-
-
     let mut share_url = "".to_string();
 
     let share_url_result = row.take_opt("shareurl");
@@ -354,7 +348,6 @@ fn _make_save_from_row(
         deleted: deleted_bool,
         deleted_on: mysql_datetime_to_chrono_utc(deleted_on_string),
         deleted_by: deleted_by,
-
 
         // session_id: row.take("session_id").unwrap(),
         name: name,

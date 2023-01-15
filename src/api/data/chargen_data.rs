@@ -9,7 +9,6 @@ use actix_web:: {
 };
 use savaged_libs::player_character::{chargen_data::ChargenData};
 
-
 #[post("/_api/chargen-data-get")]
 pub async fn api_chargen_data_get(
     pool: Data<Pool>,

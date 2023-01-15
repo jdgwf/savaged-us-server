@@ -72,7 +72,6 @@ use api::banners::{
     api_banners_get,
 };
 
-
 use actix_files as fs;
 use dotenv::dotenv;
 
@@ -294,7 +293,6 @@ async fn main() -> std::io::Result<()> {
                             // Saves Handlers
                             .service( auth_get_user_saves )
 
-
                             // User Settings
                             .service( api_user_token_remove )
                             .service( api_user_token_update_name )
@@ -303,14 +301,12 @@ async fn main() -> std::io::Result<()> {
                             .service( api_user_username_available )
                             .service( api_user_set_user_image_data )
 
-
                             // User Notification Page Handlers
                             .service( api_notifications_set_deleted )
                             .service( api_notifications_set_read )
                             .service( api_notifications_get )
                             .service( api_notifications_delete_basic_admin )
                             .service( api_notifications_set_all_read )
-
 
                             // Data Endpoints
                             // .service( hindrances_get )
@@ -319,7 +315,6 @@ async fn main() -> std::io::Result<()> {
 
                             // get banners API
                             .service( api_banners_get )
-
 
                             // admin API
                             .service( api_admin_users_get )

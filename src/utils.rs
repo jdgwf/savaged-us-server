@@ -55,7 +55,6 @@ pub async fn send_standard_email(
         }
     }
 
-
     match std::env::var("EMAIL_FROM_NAME") {
         Ok( val ) => {
             email_from_name = val.parse().unwrap();
@@ -145,7 +144,6 @@ pub async fn send_email (
         }
     }
 
-
     let mut smtp_port: u16 = 587;
     match std::env::var("MAIL_PORT") {
         Ok( val ) => {
@@ -172,7 +170,6 @@ pub async fn send_email (
         }
     }
 
-
     let mut stmp_from = from.clone();
     if !from_name.is_empty() {
         stmp_from = from_name + &"<".to_owned() + &from.to_owned() + &">".to_owned() ;
@@ -182,8 +179,6 @@ pub async fn send_email (
     if !to_name.is_empty() {
         stmp_to = to_name + &"<".to_owned() + &to.to_owned() + &">".to_owned() ;
     }
-
-
 
     let mut email = Message::builder()
         .from(stmp_from.parse().unwrap())
@@ -232,11 +227,8 @@ pub async fn send_email (
             )
             .unwrap();
 
-
     }
     let creds = Credentials::new(smtp_username, smtp_password);
-
-
 
     // if !smtp_port.is_empty() {
     //     smtp_host = smtp_host + &":".to_string() + &smtp_port;
@@ -263,7 +255,6 @@ pub async fn send_email (
             Err(e) => println!("ERROR Could not send email: {:?}", e),
             }
     }
-
 
     // Send the email
 
@@ -322,12 +313,10 @@ pub async fn send_email (
     return false;
 }
 
-
 fn _standardize_html_email(
     incoming_message: String,
     admin_unsubscribe: bool,
 ) -> String {
-
 
     let mut config_site_title = "".to_string();
     match std::env::var("SITE_TITLE") {
@@ -366,7 +355,6 @@ fn _standardize_html_email(
         .replace("{config_live_host}", config_live_host.as_ref())
         .replace("{incoming_message}", incoming_message.as_ref() )
     ;
-
 
     let message = r#"
 <!DOCTYPE html>
@@ -562,8 +550,6 @@ fn _standardize_html_email(
 </html>
     "#;
 
-
-
     return message
         .replace("{config_site_title}", config_site_title.as_ref())
         .replace("{config_live_host}", config_live_host.as_ref())
@@ -572,7 +558,6 @@ fn _standardize_html_email(
     ;
 
 }
-
 
 pub fn image_to_webp(
     file_path: &String,
@@ -608,7 +593,6 @@ pub fn resize_image_max(
 ) -> Option<String> {
     // Open path as DynamicImage
     let mut image: DynamicImage = ImageReader::open(file_path).unwrap().decode().unwrap();
-
 
     if crop_square {
         image = _square_image( image );

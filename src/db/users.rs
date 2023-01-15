@@ -21,7 +21,6 @@ use uuid::Uuid;
 
 use super::utils::admin_current_limit_paging_sql;
 
-
 const USER_SEARCH_FIELDS: &'static [&'static str]  = &[
     "first_name",
     "last_name",
@@ -152,7 +151,6 @@ pub fn get_user(
     return None;
 }
 
-
 pub fn admin_get_users(
     pool: Data<Pool>,
     paging_params: Json<FetchAdminParameters>,
@@ -228,7 +226,7 @@ pub fn admin_get_users_paging_data(
     let mut paging: AdminPagingStatistics = AdminPagingStatistics {
         non_filtered_count: 0,
         filtered_count: 0,
-        book_list: Vec::new(),
+        book_list: None,
     };
 
     let mut data_query = format!("
@@ -244,8 +242,6 @@ pub fn admin_get_users_paging_data(
     // data_query = data_query + &paging;
 
     // println!("admin_get_users_paging_data 1 data_query:\n{}", data_query);
-
-
 
     match pool.get_conn() {
         Ok( mut conn) => {
@@ -555,7 +551,6 @@ pub fn get_remote_user(
             match api_key_result {
                 Some( user ) => {
 
-
                     return Some(
                         _update_user_last_seen(
                             pool.clone(),
@@ -583,8 +578,6 @@ pub fn update_user(
     // println!("update_user (db) called ");
     match pool.get_conn() {
         Ok( mut conn) => {
-
-
 
         let sql = "UPDATE `users` set
             `first_name` = :first_name,
@@ -629,7 +622,6 @@ pub fn update_user(
                 "id" => &user.id,
             };
 
-
             conn.exec_drop( sql, params ).unwrap();
 
             return conn.affected_rows();
@@ -649,8 +641,6 @@ pub fn username_available(
 ) -> bool {
     match pool.get_conn() {
         Ok( mut conn) => {
-
-
 
             let sql = "select `id` from `users`
             where
@@ -690,8 +680,6 @@ pub fn save_username(
     match pool.get_conn() {
         Ok( mut conn) => {
 
-
-
             let sql = "update `users` SET
             `username` = :username
             where
@@ -699,12 +687,10 @@ pub fn save_username(
             LIMIT 1
             ";
 
-
             let params = params!{
                 "username" => &username,
                 "id" => &user.id,
             };
-
 
             conn.exec_drop( sql, params ).unwrap();
 
@@ -727,8 +713,6 @@ pub fn update_password(
     println!("update_password (db) called {:?}", new_password);
     match pool.get_conn() {
         Ok( mut conn) => {
-
-
 
             let sql = "UPDATE `users` set
             `password` = :password,
@@ -779,7 +763,6 @@ fn _update_user_last_seen(
         }
     }
     let mut altered_user = user.clone();
-
 
     let mut new_count = 0;
     for msg in &get_notifications_for_user(pool.clone(), user.id) {
@@ -882,7 +865,6 @@ pub fn make_user_from_row(
 
     }
 
-
     let mut profile_image = "".to_string();
     let profile_image_opt = row.take_opt( (prefix.to_owned() + &"profile_image").as_str() ).unwrap();
     match profile_image_opt {
@@ -891,7 +873,6 @@ pub fn make_user_from_row(
         Err( _ ) => {}
 
     }
-
 
     let mut timezone = "".to_string();
     let timezone_opt = row.take_opt( (prefix.to_owned() + &"timezone").as_str() ).unwrap();
@@ -991,8 +972,6 @@ pub fn log_user_in(
     email: String,
     password: String,
 ) -> LoginResult {
-
-
 
     // println!("email {}", form.email.to_owned() );
     // println!("sha_secret_key {}", sha_secret_key.to_owned() );

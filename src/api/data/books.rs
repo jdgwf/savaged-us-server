@@ -24,10 +24,6 @@ use savaged_libs::book::Book;
 
 //     );
 
-
-
-
-
 //     return actix_web::web::Json(
 //         rows
 //     );

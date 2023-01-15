@@ -19,7 +19,6 @@ use crate::db::utils::mysql_datetime_to_chrono_utc;
 
 use super::books::get_books;
 
-
 pub fn get_chargen_data(
     pool: &Data<Pool>,
     current_user_id: u32,
@@ -109,9 +108,6 @@ pub fn get_chargen_data(
     };
 }
 
-
-
-
 pub fn get_chargen_table_data(
     pool: &Data<Pool>,
     table_name: String,
@@ -134,7 +130,6 @@ pub fn get_chargen_table_data(
         deleted,
         deleted_on,
         deleted_by
-
 
         from {}
 
@@ -181,7 +176,6 @@ pub fn get_chargen_table_data(
                 ): (
                     u32,
                     Option<String>,
-
 
                     String,
                     u32,
@@ -234,12 +228,10 @@ pub fn get_chargen_table_data(
     return Vec::new();
 }
 
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct RowData {
     pub id: u32,
     pub data: Option<String>,
-
 
     pub created_by: u32,
     #[serde(default)]
@@ -255,8 +247,6 @@ pub struct RowData {
     #[serde(default)]
     pub updated_on: Option<DateTime<Utc>>,
 }
-
-
 
 pub fn get_hindrances(
     pool: &Data<Pool>,
@@ -308,7 +298,6 @@ pub fn get_hindrances(
     return parsed_data;
 }
 
-
 pub fn get_edges(
     pool: &Data<Pool>,
     updated_on: Option<DateTime<Utc>>,
@@ -357,8 +346,6 @@ pub fn get_edges(
     }
     return parsed_data;
 }
-
-
 
 pub fn get_weapons(
     pool: &Data<Pool>,
@@ -409,8 +396,6 @@ pub fn get_weapons(
     return parsed_data;
 }
 
-
-
 pub fn get_gear(
     pool: &Data<Pool>,
     updated_on: Option<DateTime<Utc>>,
@@ -459,8 +444,6 @@ pub fn get_gear(
     }
     return parsed_data;
 }
-
-
 
 pub fn get_armor(
     pool: &Data<Pool>,

@@ -194,7 +194,6 @@ pub async fn api_notifications_set_read(
         None => {}
     }
 
-
     let current_user = get_remote_user(
         pool.clone(),
         api_key,

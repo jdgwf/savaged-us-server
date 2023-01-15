@@ -80,8 +80,6 @@ impl Actor for ServerWebsocket {
     }
 }
 
-
-
 impl Handler<WsMessage> for ServerWebsocket {
     type Result = ();
 
@@ -148,7 +146,6 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
         }
     }
 }
-
 
 impl ServerWebsocket {
     pub fn new (

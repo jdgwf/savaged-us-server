@@ -134,7 +134,6 @@ pub async fn api_auth_login_for_token(
         real_remote_addy = x_forwarded_for;
     }
 
-
     let mut rv = LoginTokenResult {
         success: false,
         active_notifications: 0,

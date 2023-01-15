@@ -44,7 +44,6 @@ use super::super::db::users::{
 // use base64;
 // use derive_more::{Display};
 
-
 #[post("/_api/saves/get")]
 pub async fn auth_get_user_saves(
     pool: Data<Pool>,

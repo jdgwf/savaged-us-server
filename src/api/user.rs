@@ -35,15 +35,12 @@ use super::super::db::users::{
 use serde::{Serialize, Deserialize};
 use savaged_libs::user::{ User, LoginToken, UserUpdateResult };
 
-
-
 #[post("/_api/user/save-username")]
 pub async fn api_user_save_username (
     pool: Data<Pool>,
     form: Json<UserNameForm>,
     request: HttpRequest,
 ) -> Json<bool> {
-
 
     // println!("api_user_save_username called");
 
@@ -218,7 +215,6 @@ pub async fn api_user_token_update_name(
     return Json( Vec::new() );
 }
 
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct UpdateSettingData {
     api_key: Option<String>,
@@ -283,7 +279,6 @@ pub async fn api_user_update_settings(
                     user_settings.last_seen_ip = user.last_seen_ip;
                     user_settings.last_seen_on = user.last_seen_on;
 
-
                     let data_dir_path = "./data/uploads/";
                     let png_filename = data_dir_path.to_owned() + &"users/".to_owned() + &user_settings.id.to_string()  + &".png".to_owned();
                     let jpg_filename = data_dir_path.to_owned() + &"users/".to_owned() + &user_settings.id.to_string()  + &".jpg".to_owned();
@@ -316,7 +311,6 @@ pub async fn api_user_update_settings(
                         do_notify_admins = true;
                     }
 
-
                     if !user_settings.email.is_empty() {
                         let mut new_encrypted_pass: Option<String> = None;
                         if
@@ -342,7 +336,6 @@ pub async fn api_user_update_settings(
                             return_value.success = true;
                             return_value.message = "User Updated".to_string();
                         }
-
 
                     } else {
                         return_value.message = "Email Address cannot be empty - this might be a data transfer error.".to_string();
@@ -496,7 +489,6 @@ pub async fn api_user_set_user_image_data(
     //     .map(|m| m.as_ref())
     //     .unwrap_or("null");
 
-
     let user_option = get_remote_user(
         pool.clone(),
         api_key,
@@ -509,7 +501,6 @@ pub async fn api_user_set_user_image_data(
 
             for allowed in CONFIG_ALLOWED_IMAGE_TYPES {
                 if allowed == &content_type {
-
 
                     let _ = fs::create_dir_all( "/data/uploads/".to_owned() + &"users/" + &user.id.to_string() );
 
@@ -537,7 +528,6 @@ pub async fn api_user_set_user_image_data(
                         save_file_name = png_filename.to_owned();
                         let _ = fs::copy(form.image.file.path().to_str().unwrap(), &save_file_name);
                         let _ = image_to_webp( &png_filename, &webp_filename, 1000, crop_square );
-
 
                         let _ = fs::remove_file(&png_filename);
                     } else if &content_type == &"image/jpg" || &content_type == &"image/jpeg" {

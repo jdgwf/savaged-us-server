@@ -8,12 +8,12 @@ use actix_web:: {
 
 };
 use savaged_libs::{
-    admin_libs::{FetchAdminParameters, AdminPagingStatistics}, game_data::GameData,
+    admin_libs::{FetchAdminParameters, AdminPagingStatistics}, game_data::GameData, book::Book,
 };
 
 use crate::db::{users::{
     admin_get_users, get_remote_user, admin_get_users_paging_data,
-}, game_data::{db_admin_get_game_data, db_admin_get_game_data_paging_data}, books::get_books_list};
+}, game_data::{db_admin_get_game_data, db_admin_get_game_data_paging_data}, books::get_books};
 
 #[post("/_api/admin/game-data/{table}/get")]
 pub async fn api_admin_game_data_get(
@@ -60,9 +60,6 @@ pub async fn api_admin_game_data_get(
     return Json( Vec::new() );
 }
 
-
-
-
 #[post("/_api/admin/game-data/{table}/paging")]
 pub async fn api_admin_game_data_paging(
     path: web::Path<(String,)>,
@@ -94,10 +91,18 @@ pub async fn api_admin_game_data_paging(
         request,
     );
 
+    let mut book_list: Option<Vec<Book>> = None;
+
+    let needs_book_list = form.needs_book_list;
     match data_option {
         Some( game_data ) => {
             if game_data.has_developer_access() {
-                return Json(db_admin_get_game_data_paging_data( pool, table, form ));
+
+                let mut val = db_admin_get_game_data_paging_data( pool.clone(), table, form );
+                if needs_book_list {
+                    val.book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
+                }
+                return Json(val);
             }
         }
         None => {}
@@ -107,7 +112,7 @@ pub async fn api_admin_game_data_paging(
         AdminPagingStatistics {
             non_filtered_count: 0,
             filtered_count: 0,
-            book_list: get_books_list(&pool)
+            book_list: book_list,
         }
      );
 }

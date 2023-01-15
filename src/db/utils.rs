@@ -3,14 +3,12 @@ use chrono::prelude::*;
 use mysql::Row;
 use savaged_libs::admin_libs::FetchAdminParameters;
 
-
 pub fn mysql_row_to_chrono_utc (
     row: &mut Row,
     field_name: &str,
 ) ->  Option<DateTime<Utc>> {
 
     let date_opt_opt = row.take_opt(field_name);
-
 
     match date_opt_opt {
 
@@ -67,7 +65,6 @@ pub fn admin_current_limit_paging_sql(
     params: &Json<FetchAdminParameters>,
 ) -> String {
 
-
     let limit = format!("\nLIMIT {}, {}", params.current_page  * params.number_per_page, params.number_per_page);
     match &params.sort_by {
         Some( sort_by ) => {
@@ -90,7 +87,6 @@ pub fn admin_filter_where_clause(
     uses_book_id: bool,
 ) -> String {
 
-
     match &params.filter {
         Some( filter ) => {
             let mut rv = "".to_string();
@@ -99,14 +95,12 @@ pub fn admin_filter_where_clause(
                     '1' = '2'
                 ";
 
-
                 for mut field in search_fields.iter() {
                     if remove_primary {
                         rv += format!("\tOR `{}` like '%{}%' ", field.replace("primary`.`", ""), filter).as_str();
                     } else {
                         rv += format!("\tOR `{}` like '%{}%' ", field, filter).as_str();
                     }
-
                 }
 
                 rv += ")\n";
@@ -118,7 +112,6 @@ pub fn admin_filter_where_clause(
                 } else {
                     rv += format!("\tAND `{}` = '{}' ", "primary`.`book_id", params.filter_book).as_str();
                 }
-
             }
 
             return rv;
@@ -137,5 +130,4 @@ pub fn admin_filter_where_clause(
         }
     }
 }
-
 

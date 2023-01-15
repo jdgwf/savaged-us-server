@@ -7,7 +7,6 @@ use actix_web_actors::ws;
 use mysql::Pool;
 use uuid::Uuid;
 
-
 #[get("/_ws")]
 pub async fn web_socket_router(
     req: HttpRequest,

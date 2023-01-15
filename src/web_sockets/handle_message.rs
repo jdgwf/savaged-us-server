@@ -15,7 +15,6 @@ pub fn handle_message(
     ws: &mut ServerWebsocket,
 ) {
 
-
     match msg.kind {
 
         WebsocketMessageType::Saves => {
@@ -128,7 +127,6 @@ pub fn handle_message(
 
             send_message( message_to_be_send, ctx );
 
-
         }
         WebsocketMessageType::Online => {
             // println!("handle_message Online {:?}", msg);
@@ -174,7 +172,6 @@ pub fn handle_message(
 
             // ctx.text(msg);
         }
-
 
         WebsocketMessageType::Logout => {
             // println!("handle_message Offline {:?}", msg);
@@ -273,6 +270,5 @@ fn send_message(
             println!("ERROR websockets::handle_message::send_message json to_str error {} {:?}", err.to_string(), &send_message);
         }
     }
-
 
 }

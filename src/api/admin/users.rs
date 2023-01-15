@@ -56,9 +56,6 @@ pub async fn api_admin_users_get(
     return Json( Vec::new() );
 }
 
-
-
-
 #[post("/_api/admin/users/paging")]
 pub async fn api_admin_users_paging(
     pool: Data<Pool>,
@@ -100,7 +97,7 @@ pub async fn api_admin_users_paging(
         AdminPagingStatistics {
             non_filtered_count: 0,
             filtered_count: 0,
-            book_list: Vec::new(),
+            book_list: None,
         }
      );
 }
