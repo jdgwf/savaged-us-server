@@ -5,7 +5,7 @@ use savaged_libs::{websocket_message::{
     WebsocketMessageType,
 }, user::LoginToken};
 use super::ServerWebsocket;
-use crate::{db::{users::{get_user_from_login_token, update_user_login_tokens}, chargen_data::get_chargen_data, saves::get_user_saves}, utils::send_standard_email};
+use crate::{db::{users::{get_user_from_login_token, update_user_login_tokens}, game_data::get_game_data_package, saves::get_user_saves}, utils::send_standard_email};
 use tokio::task;
 use chrono::prelude::*;
 
@@ -55,12 +55,12 @@ pub fn handle_message(
             send_message( message_to_be_send, ctx );
 
         }
-        WebsocketMessageType::ChargenData => {
+        WebsocketMessageType::GameDataPackage => {
 
-            // println!("handle_message ChargenData {:?}", msg);
+            // println!("handle_message GameDataPackage {:?}", msg);
 
             let mut message_to_be_send = WebSocketMessage::default();
-            message_to_be_send.kind = WebsocketMessageType::ChargenData;
+            message_to_be_send.kind = WebsocketMessageType::GameDataPackage;
             if msg.token != None {
                 let user_option = get_user_from_login_token(
                     ws.pool.clone(),
@@ -74,7 +74,7 @@ pub fn handle_message(
                         // message_to_be_send.user = Some(user.clone());
                         // println!("** Online {:?}", ws.user);
 
-                        message_to_be_send.chargen_data = Some(get_chargen_data(
+                        message_to_be_send.game_data = Some(get_game_data_package(
                             &ws.pool.clone(),
                             user.id,
                             msg.updated_on,
@@ -100,7 +100,7 @@ pub fn handle_message(
                     }
                     None => {
 
-                        message_to_be_send.chargen_data = Some(get_chargen_data(
+                        message_to_be_send.game_data = Some(get_game_data_package(
                             &ws.pool.clone(),
                             0,
                             msg.updated_on,
@@ -113,7 +113,7 @@ pub fn handle_message(
                     }
                 }
             } else {
-                message_to_be_send.chargen_data = Some(get_chargen_data(
+                message_to_be_send.game_data = Some(get_game_data_package(
                     &ws.pool.clone(),
                     0,
                     msg.updated_on,

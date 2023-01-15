@@ -1,4 +1,4 @@
-use crate::{db::{chargen_data::{get_chargen_data}, users::get_remote_user}, api::auth::ApiKeyOrToken};
+use crate::{db::{game_data::{get_game_data_package}, users::get_remote_user}, api::auth::ApiKeyOrToken};
 use mysql::Pool;
 use actix_web:: {
     get,
@@ -7,14 +7,14 @@ use actix_web:: {
     web::Data, HttpRequest,
 
 };
-use savaged_libs::player_character::{chargen_data::ChargenData};
+use savaged_libs::player_character::game_data_package::GameDataPackage;
 
-#[post("/_api/chargen-data-get")]
-pub async fn api_chargen_data_get(
+#[post("/_api/game-data-get")]
+pub async fn api_game_data_get(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
     request: HttpRequest,
-) -> Json<ChargenData> {
+) -> Json<GameDataPackage> {
 
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -68,7 +68,7 @@ pub async fn api_chargen_data_get(
         }
     }
 
-    let chargen_data = get_chargen_data(
+    let game_data = get_game_data_package(
         &pool,
         0,
         None,
@@ -80,6 +80,6 @@ pub async fn api_chargen_data_get(
     );
 
     return actix_web::web::Json(
-        chargen_data
+        game_data
     );
 }

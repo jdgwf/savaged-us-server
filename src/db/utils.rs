@@ -69,7 +69,7 @@ pub fn admin_current_limit_paging_sql(
     match &params.sort_by {
         Some( sort_by ) => {
             let mut sort_dir = "DESC".to_owned();
-            if( params.sort_by_ascending ) {
+            if params.sort_by_ascending {
                 sort_dir = "ASC".to_owned();
             }
             return format!("{}\nSORT BY `{}`, {}\n", limit, sort_by, sort_dir);

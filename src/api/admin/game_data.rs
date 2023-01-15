@@ -13,7 +13,7 @@ use savaged_libs::{
 
 use crate::db::{users::{
     admin_get_users, get_remote_user, admin_get_users_paging_data,
-}, game_data::{db_admin_get_game_data, db_admin_get_game_data_paging_data}, books::get_books};
+}, admin_data::{db_admin_get_game_data, db_admin_get_game_data_paging_data}, books::get_books};
 
 #[post("/_api/admin/game-data/{table}/get")]
 pub async fn api_admin_game_data_get(

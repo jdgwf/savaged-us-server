@@ -63,8 +63,8 @@ use api::admin::game_data::{
     api_admin_game_data_paging,
 };
 
-use api::data::chargen_data::{
-    api_chargen_data_get,
+use api::data::game_data::{
+    api_game_data_get,
 };
 // use api::data::books::books_get;
 
@@ -311,7 +311,7 @@ async fn main() -> std::io::Result<()> {
                             // Data Endpoints
                             // .service( hindrances_get )
                             // .service( books_get )
-                            .service( api_chargen_data_get )
+                            .service( api_game_data_get )
 
                             // get banners API
                             .service( api_banners_get )
