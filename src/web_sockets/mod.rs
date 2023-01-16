@@ -1,31 +1,24 @@
 mod handle_message;
-pub mod lobby;
 mod messages;
+pub mod lobby;
 pub mod web_socket_router;
 
-use std::time::{Duration, Instant};
-
-use actix_web::web::Data;
-use mysql::{Pool, MySqlError};
-use serde;
-use serde::{Serialize, Deserialize};
-use serde_json;
-use savaged_libs::user::User;
-use savaged_libs::websocket_message::{
-    WebSocketMessage,
-    WebsocketMessageType,
-};
-use actix::{Actor, StreamHandler, AsyncContext, Addr, Running, fut, ContextFutureSpawner, Handler};
-use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer};
-use actix_web_actors::ws;
-use actix::WrapFuture;
-use actix::ActorFutureExt;
 use actix::ActorContext;
+use actix::ActorFutureExt;
+use actix::WrapFuture;
+use actix::{Actor, StreamHandler, AsyncContext, Addr, Running, fut, ContextFutureSpawner, Handler};
+use actix_web::HttpRequest;
+use actix_web::web::Data;
+use actix_web_actors::ws;
 use handle_message::handle_message;
-use uuid::Uuid;
-
+use mysql::{Pool};
+use savaged_libs::user::User;
+use savaged_libs::websocket_message::WebSocketMessage;
 use self::lobby::Lobby;
 use self::messages::{Connect, Disconnect, WsMessage};
+use serde_json;
+use std::time::{Duration, Instant};
+use uuid::Uuid;
 
 const HEARTBEAT_INTERVAL: Duration = Duration::from_secs(5);
 const CLIENT_TIMEOUT: Duration = Duration::from_secs(10);
@@ -100,6 +93,9 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
     )
     {
         match msg {
+            Ok( actix_web_actors::ws::Message::Continuation( _ )) => {}
+            Ok(actix_web_actors::ws::Message::Nop) => {}
+
             Ok(ws::Message::Ping(msg)) => {
                 ctx.pong(&msg);
                 self.hb = Instant::now();
@@ -136,13 +132,10 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
                 // ctx.stop();
             }
 
-            Err( err ) => {
+            Err( _err ) => {
 //                println!("StreamHandler handle error {:?}", err );
             },
 
-            _ => {
-
-            }
         }
     }
 }
@@ -155,16 +148,57 @@ impl ServerWebsocket {
         chat_server: Addr<Lobby>,
         req: HttpRequest,
     ) -> ServerWebsocket {
+
+        let conn_info = req.connection_info();
+
+        let mut real_remote_addy = "".to_string();
+        let mut user_agent = "".to_string();
+        let mut x_forwarded_for = "".to_string();
+
+        let real_remote_addy_option = conn_info.realip_remote_addr();
+        match real_remote_addy_option {
+            Some( val ) => {
+                real_remote_addy = val.to_string();
+            }
+            None => {
+
+            }
+        }
+
+        let user_agent_option = req.headers().get("user-agent");
+        match user_agent_option {
+            Some( val ) => {
+                user_agent = format!("{:?}", val).to_string().replace("\"", "");
+            }
+            None => {
+
+            }
+        }
+
+        let x_forwarded_for_option = req.headers().get("x-forwarded-for");
+        match x_forwarded_for_option {
+            Some( val ) => {
+                x_forwarded_for = format!("{:?}", val).to_string().replace("\"", "");
+            }
+            None => {
+
+            }
+        }
+
+        if !x_forwarded_for.is_empty() {
+            real_remote_addy = x_forwarded_for;
+        }
+
         ServerWebsocket {
             id: Uuid::new_v4(),
-            user: None,
+            user: user,
             hb: Instant::now(),
             pool: pool,
             chat_server: chat_server,
             req: req.clone(),
             room_id: None,
-            remote_browser: "".to_owned(),
-            remote_ip: "".to_owned(),
+            remote_browser: user_agent.to_owned(),
+            remote_ip: real_remote_addy.to_owned(),
         }
     }
 
@@ -174,9 +208,9 @@ impl ServerWebsocket {
     ) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
-                println!("Disconnecting failed heartbeat");
-                // act.chat_server.do_send(Disconnect { id: act.id, room_id: act.room });
-                // ctx.stop();
+                // println!("Disconnecting failed heartbeat");
+                act.chat_server.do_send(Disconnect { id: act.id, room_id: act.room_id });
+                ctx.stop();
                 return;
             }
 

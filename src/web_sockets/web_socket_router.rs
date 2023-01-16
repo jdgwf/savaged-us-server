@@ -2,10 +2,9 @@ use crate::db::users::get_user_from_login_token;
 use crate::web_sockets::ServerWebsocket;
 use crate::web_sockets::Lobby;
 use actix::Addr;
-use actix_web::{get, web::Data, web::Path, web::Payload, Error, HttpResponse, HttpRequest};
+use actix_web::{get, web::Data, web::Payload, Error, HttpResponse, HttpRequest};
 use actix_web_actors::ws;
 use mysql::Pool;
-use uuid::Uuid;
 
 #[get("/_ws")]
 pub async fn web_socket_router(

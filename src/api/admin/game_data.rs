@@ -1,19 +1,18 @@
 use mysql::Pool;
-
+use actix_web::web::Json;
 use actix_web:: {
     HttpRequest,
     post,
-    web::Json,
     web::{Data, self},
 
 };
 use savaged_libs::{
-    admin_libs::{FetchAdminParameters, AdminPagingStatistics}, game_data::GameData, book::Book,
+    admin_libs::{FetchAdminParameters, AdminPagingStatistics, AdminSavePackage, AdminSaveReturn, AdminDeletePackage}, game_data_row::GameDataRow,
 };
 
 use crate::db::{users::{
-    admin_get_users, get_remote_user, admin_get_users_paging_data,
-}, admin_data::{db_admin_get_game_data, db_admin_get_game_data_paging_data}, books::get_books};
+    get_remote_user,
+}, admin_data::{db_admin_get_game_data, db_admin_get_game_data_paging_data, db_admin_delete_game_data, db_admin_update_game_data, db_admin_insert_game_data, db_admin_admin_get_item}, books::get_books};
 
 #[post("/_api/admin/game-data/{table}/get")]
 pub async fn api_admin_game_data_get(
@@ -21,7 +20,7 @@ pub async fn api_admin_game_data_get(
     pool: Data<Pool>,
     form: Json<FetchAdminParameters>,
     request: HttpRequest,
-) -> Json<Vec<GameData>> {
+) -> Json<Vec<GameDataRow>> {
 
     let table = path.into_inner().0.to_string();
     // println!("api_admin_game_data_get table {}", table);
@@ -40,16 +39,16 @@ pub async fn api_admin_game_data_get(
         }
         None => {}
     }
-    let data_option = get_remote_user(
+    let user_option = get_remote_user(
         pool.clone(),
         api_key,
         login_token,
         request,
     );
 
-    match data_option {
-        Some( game_data ) => {
-            if game_data.has_developer_access() {
+    match user_option {
+        Some( user ) => {
+            if user.has_developer_access() {
                 let game_data = db_admin_get_game_data( pool, table, form );
                 return Json( game_data );
             }
@@ -68,7 +67,7 @@ pub async fn api_admin_game_data_paging(
     request: HttpRequest,
 ) -> Json<AdminPagingStatistics> {
     let table = path.into_inner().0.to_string();
-    // println!("api_admin_game_data_get table {}", table);
+    // println!("api_admin_game_data_paging table {}", table);
 
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -84,19 +83,18 @@ pub async fn api_admin_game_data_paging(
         }
         None => {}
     }
-    let data_option = get_remote_user(
+    let user_option = get_remote_user(
         pool.clone(),
         api_key,
         login_token,
         request,
     );
 
-    let mut book_list: Option<Vec<Book>> = None;
-
     let needs_book_list = form.needs_book_list;
-    match data_option {
-        Some( game_data ) => {
-            if game_data.has_developer_access() {
+
+    match user_option {
+        Some( user ) => {
+            if user.has_developer_access() {
 
                 let mut val = db_admin_get_game_data_paging_data( pool.clone(), table, form );
                 if needs_book_list {
@@ -112,7 +110,257 @@ pub async fn api_admin_game_data_paging(
         AdminPagingStatistics {
             non_filtered_count: 0,
             filtered_count: 0,
-            book_list: book_list,
+            book_list: None,
         }
      );
+}
+
+#[post("/_api/admin/game-data/{table}/save")]
+pub async fn api_admin_game_data_save(
+    path: web::Path<(String,)>,
+    pool: Data<Pool>,
+    form: Json<AdminSavePackage>,
+    request: HttpRequest,
+) -> Json<AdminSaveReturn> {
+    let table = path.into_inner().0.to_string();
+    // println!("api_admin_game_data_save table {}", table);
+
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
+    match &form.login_token {
+        Some( val ) => {
+            login_token = Some(val.to_owned());
+        }
+        None => {}
+    }
+    match &form.api_key {
+        Some( val ) => {
+            api_key = Some(val.to_owned());
+        }
+        None => {}
+    }
+    let user_option = get_remote_user(
+        pool.clone(),
+        api_key,
+        login_token,
+        request,
+    );
+
+    // let needs_book_list = form.needs_book_list;
+    // println!("needs_book_list {}", needs_book_list);
+    match user_option {
+        Some( user ) => {
+            if user.has_developer_access() {
+
+
+
+                let book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
+
+
+                let item_opt= db_admin_admin_get_item(
+                    pool.clone(),
+                    table.to_owned(),
+                    form.id,
+                );
+
+                match item_opt {
+                    Some( item ) => {
+                        if user.admin_can_write_item(&book_list, item.created_by, item.book_id)
+                            ||
+                            user.admin_can_write_book(&book_list, item.book_id)
+                        {
+                            if form.id == 0 {
+
+                                let _affected_rows = db_admin_insert_game_data(
+                                    pool.clone(),
+                                    table.to_owned(),
+                                    user.id,
+                                    form.data.clone(),
+                                );
+                            } else {
+                                let _affected_rows = db_admin_update_game_data(
+                                    pool.clone(),
+                                    table.to_owned(),
+                                    user.id,
+                                    form.id,
+                                    form.data.clone(),
+                                );
+                            }
+
+                            return Json(
+                                AdminSaveReturn {
+                                    rows_affected: 0,
+                                    message_class: "success".to_owned(),
+                                    message: "Data Saved".to_owned(),
+                                    game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone() ) ) ),
+                                }
+                            );
+                        } else {
+                            return Json(
+                                AdminSaveReturn {
+                                    rows_affected: 0,
+                                    message_class: "danger".to_owned(),
+                                    message: "You do not have access to save this item!".to_owned(),
+                                    game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone() ) ) ),
+                                }
+                             );
+                        }
+
+
+                    }
+                    None => {
+                        return Json(
+                            AdminSaveReturn {
+                                rows_affected: 0,
+                                message_class: "danger".to_owned(),
+                                message: "Cannot find item!".to_owned(),
+                                game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone() ) ) ),
+                            }
+                         );
+                    }
+                }
+
+
+                // rv.game_data = Some(db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone()) ));
+
+                // return Json(rv);
+            } else {
+                return Json(
+                    AdminSaveReturn {
+                        rows_affected: 0,
+                        message_class: "danger".to_owned(),
+                        message: "You do not have developer access!".to_owned(),
+                        game_data: None,
+                    }
+                 );
+            }
+        }
+        None => {
+            return Json(
+                AdminSaveReturn {
+                    rows_affected: 0,
+                    message_class: "danger".to_owned(),
+                    message: "You could not be authenticated!".to_owned(),
+                    game_data: None,
+                }
+             );
+        }
+    }
+
+}
+
+#[post("/_api/admin/game-data/{table}/delete")]
+pub async fn api_admin_game_data_delete(
+    path: web::Path<(String,)>,
+    pool: Data<Pool>,
+    form: Json<AdminDeletePackage>,
+    request: HttpRequest,
+) -> Json<AdminSaveReturn> {
+    let table = path.into_inner().0.to_string();
+    println!("api_admin_game_data_delete table {}", table);
+
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
+
+    match &form.login_token {
+        Some( val ) => {
+            login_token = Some(val.to_owned());
+        }
+        None => {}
+    }
+
+    match &form.api_key {
+        Some( val ) => {
+            api_key = Some(val.to_owned());
+        }
+        None => {}
+    }
+
+    let user_option = get_remote_user(
+        pool.clone(),
+        api_key,
+        login_token,
+        request,
+    );
+
+    match user_option {
+        Some( user ) => {
+            if user.has_developer_access() {
+
+                let mut rv = AdminSaveReturn {
+                    rows_affected: 0,
+                    message_class: "success".to_owned(),
+                    message: "Data Deleted".to_owned(),
+                    game_data: None,
+                };
+
+                let book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
+
+                let item_opt= db_admin_admin_get_item(
+                    pool.clone(),
+                    table.to_owned(),
+                    form.id,
+                );
+
+                match item_opt {
+                    Some( item ) => {
+                        if user.admin_can_delete_item(&book_list, item.created_by, item.book_id) {
+                            let _affected_rows = db_admin_delete_game_data(
+                                pool.clone(),
+                                table.to_owned(),
+                                user.id,
+                                form.id,
+                            );
+
+                            rv.game_data = Some(db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone()) ));
+
+                            return Json(rv);
+                        } else {
+                            return Json(
+                                AdminSaveReturn {
+                                    rows_affected: 0,
+                                    message_class: "danger".to_owned(),
+                                    message: "You do not have access to delete this item!".to_owned(),
+                                    game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone()) ) ),
+                                }
+                             );
+                        }
+
+
+                    }
+                    None => {
+                        return Json(
+                            AdminSaveReturn {
+                                rows_affected: 0,
+                                message_class: "danger".to_owned(),
+                                message: "Cannot find item!".to_owned(),
+                                game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone()) ) ),
+                            }
+                         );
+                    }
+                }
+
+            } else {
+                return Json(
+                    AdminSaveReturn {
+                        rows_affected: 0,
+                        message_class: "danger".to_owned(),
+                        message: "You do not have developer access!".to_owned(),
+                        game_data: None,
+                    }
+                 );
+            }
+        }
+        None => {
+            return Json(
+                AdminSaveReturn {
+                    rows_affected: 0,
+                    message_class: "danger".to_owned(),
+                    message: "You could not be authenticated!".to_owned(),
+                    game_data: None,
+                }
+             );
+        }
+    }
+
 }

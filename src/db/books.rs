@@ -1,16 +1,11 @@
-// use mysql::*;
+use actix_web::web::Data;
+use chrono::prelude::*;
+use crate::db::utils::mysql_datetime_to_chrono_utc;
 use mysql::Pool;
 use mysql::prelude::*;
-use chrono::prelude::*;
-use actix_web:: {
-    // web::Json,
-    web::Data,
-};
 use savaged_libs::book::Book;
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
-use savaged_libs::utils::float_to_int;
 use savaged_libs::utils::bool_from_int_or_bool;
-use crate::db::utils::mysql_datetime_to_chrono_utc;
+use serde::{Serialize, Deserialize};
 
 pub fn get_books(
     pool: &Data<Pool>,

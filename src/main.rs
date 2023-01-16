@@ -4,7 +4,6 @@ extern crate dotenv;
 use actix::Actor;
 use actix_web::HttpRequest;
 use actix_web::http::header;
-use db::users::admin_get_users;
 use mysql::*;
 
 mod utils;
@@ -61,6 +60,8 @@ use api::admin::users::{
 use api::admin::game_data::{
     api_admin_game_data_get,
     api_admin_game_data_paging,
+    api_admin_game_data_save,
+    api_admin_game_data_delete,
 };
 
 use api::data::game_data::{
@@ -123,16 +124,22 @@ async fn main() -> std::io::Result<()> {
         "/me/devices",
         "/me/api-key",
         "/me/saves",
+        "/me/saves/",
+        "/me/saves/edit/{uuid}",
+        "/me/saves/view/{uuid}",
+        "/me/saves/edit/{uuid}/",
+        "/me/saves/view/{uuid}/",
+        "/me/campaigns/",
         "/me/campaigns",
 
         "/admin/",
         "/admin/users/",
         "/admin/game-data/",
-        "/admin/game-data/hindrances/",
+        "/admin/game-data/{table}/",
         "/admin",
         "/admin/users",
         "/admin/game-data",
-        "/admin/game-data/hindrances",
+        "/admin/game-data/{table}",
     ];
 
     dotenv().ok();
@@ -319,8 +326,11 @@ async fn main() -> std::io::Result<()> {
                             // admin API
                             .service( api_admin_users_get )
                             .service( api_admin_users_paging )
+
                             .service( api_admin_game_data_get )
                             .service( api_admin_game_data_paging )
+                            .service( api_admin_game_data_save )
+                            .service( api_admin_game_data_delete )
 
                             // render yew app SSR.
                             .service(

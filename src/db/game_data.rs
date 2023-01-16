@@ -1,21 +1,16 @@
-use mysql::{Pool, params};
-use mysql::prelude::*;
+use actix_web::web::Data;
 use chrono::prelude::*;
-use actix_web:: {
-    // web::Json,
-    web::Data,
-};
-use savaged_libs::book::Book;
-use savaged_libs::player_character::armor::Armor;
-use savaged_libs::player_character::weapon::Weapon;
-use savaged_libs::player_character::gear::Gear;
-use savaged_libs::player_character::game_data_package::{GameDataPackage, GameDataPackageLevel};
-use savaged_libs::player_character::edge::Edge;
-use savaged_libs::player_character::hindrance::Hindrance;
-use serde::{Serialize, Deserialize, Serializer, Deserializer};
-use savaged_libs::utils::float_to_int;
-use savaged_libs::utils::bool_from_int_or_bool;
 use crate::db::utils::mysql_datetime_to_chrono_utc;
+use mysql::prelude::*;
+use mysql::Pool;
+use savaged_libs::player_character::armor::Armor;
+use savaged_libs::player_character::edge::Edge;
+use savaged_libs::player_character::game_data_package::{GameDataPackage, GameDataPackageLevel};
+use savaged_libs::player_character::gear::Gear;
+use savaged_libs::player_character::hindrance::Hindrance;
+use savaged_libs::player_character::weapon::Weapon;
+use savaged_libs::utils::bool_from_int_or_bool;
+use serde::{Serialize, Deserialize};
 
 use super::books::get_books;
 
@@ -80,6 +75,7 @@ pub fn get_game_data_package(
         &book_ids,
         all
     );
+
     let mut data_level: GameDataPackageLevel = GameDataPackageLevel::Anonymous;
 
     if access_admin {
@@ -153,7 +149,7 @@ pub fn get_game_data_table_data(
         }
     }
     // let data_params = params!{ "user_id" => user_id};
-    let data_params = params!{ "1" => "1"};
+    // let data_params = params!{ "1" => "1"};
     match pool.get_conn() {
         Ok( mut conn) => {
             let get_row_data_result = conn
