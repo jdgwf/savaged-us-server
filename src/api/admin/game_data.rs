@@ -6,6 +6,8 @@ use actix_web:: {
     web::{Data, self},
 
 };
+use savaged_libs::alert_level::AlertLevel;
+use savaged_libs::utils::string_manipulation::uppercase_first;
 use savaged_libs::{
     admin_libs::{FetchAdminParameters, AdminPagingStatistics, AdminSavePackage, AdminSaveReturn, AdminDeletePackage}, game_data_row::GameDataRow,
 };
@@ -169,29 +171,21 @@ pub async fn api_admin_game_data_save(
                             ||
                             user.admin_can_write_book(&book_list, item.book_id)
                         {
-                            if form.id == 0 {
 
-                                let _affected_rows = db_admin_insert_game_data(
-                                    pool.clone(),
-                                    table.to_owned(),
-                                    user.id,
-                                    form.data.clone(),
-                                );
-                            } else {
-                                let _affected_rows = db_admin_update_game_data(
-                                    pool.clone(),
-                                    table.to_owned(),
-                                    user.id,
-                                    form.id,
-                                    form.data.clone(),
-                                );
-                            }
+                            println!("saving {}", form.id );
+                            let _affected_rows = db_admin_update_game_data(
+                                pool.clone(),
+                                table.to_owned(),
+                                user.id,
+                                form.id,
+                                form.data.clone(),
+                            );
 
                             return Json(
                                 AdminSaveReturn {
                                     rows_affected: 0,
-                                    message_class: "success".to_owned(),
-                                    message: "Data Saved".to_owned(),
+                                    level: AlertLevel::Success,
+                                    message: uppercase_first(table.as_str()) + &" '".to_owned() + &form.name + &"' has been saved".to_owned(),
                                     game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone() ) ) ),
                                 }
                             );
@@ -199,7 +193,7 @@ pub async fn api_admin_game_data_save(
                             return Json(
                                 AdminSaveReturn {
                                     rows_affected: 0,
-                                    message_class: "danger".to_owned(),
+                                    level: AlertLevel::Danger,
                                     message: "You do not have access to save this item!".to_owned(),
                                     game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone() ) ) ),
                                 }
@@ -209,14 +203,44 @@ pub async fn api_admin_game_data_save(
 
                     }
                     None => {
-                        return Json(
-                            AdminSaveReturn {
-                                rows_affected: 0,
-                                message_class: "danger".to_owned(),
-                                message: "Cannot find item!".to_owned(),
-                                game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone() ) ) ),
+                        // no existing save found, likely inserting a new row
+                        if user.admin_can_write_book(&book_list, form.book_id) {
+                            println!("form.id  {}", form.id );
+                            if form.id == 0 {
+                                println!("inserting {}", form.id );
+                                let _affected_rows = db_admin_insert_game_data(
+                                    pool.clone(),
+                                    table.to_owned(),
+                                    user.id,
+                                    form.data.clone(),
+                                );
+                                return Json(
+                                    AdminSaveReturn {
+                                        rows_affected: 0,
+                                        level: AlertLevel::Success,
+                                        message: uppercase_first(table.as_str()) + &" '".to_owned() + &form.name + &"' has been added".to_owned(),
+                                        game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone() ) ) ),
+                                    }
+                                );
                             }
-                         );
+                            return Json(
+                                AdminSaveReturn {
+                                    rows_affected: 0,
+                                    level: AlertLevel::Danger,
+                                    message: "Cannot find item!".to_owned(),
+                                    game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone() ) ) ),
+                                }
+                            );
+                        } else {
+                            return Json(
+                                AdminSaveReturn {
+                                    rows_affected: 0,
+                                    level: AlertLevel::Danger,
+                                    message: "No access to save to book!".to_owned(),
+                                    game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone() ) ) ),
+                                }
+                            );
+                        }
                     }
                 }
 
@@ -228,7 +252,7 @@ pub async fn api_admin_game_data_save(
                 return Json(
                     AdminSaveReturn {
                         rows_affected: 0,
-                        message_class: "danger".to_owned(),
+                        level: AlertLevel::Danger,
                         message: "You do not have developer access!".to_owned(),
                         game_data: None,
                     }
@@ -239,7 +263,7 @@ pub async fn api_admin_game_data_save(
             return Json(
                 AdminSaveReturn {
                     rows_affected: 0,
-                    message_class: "danger".to_owned(),
+                    level: AlertLevel::Danger,
                     message: "You could not be authenticated!".to_owned(),
                     game_data: None,
                 }
@@ -289,7 +313,7 @@ pub async fn api_admin_game_data_delete(
 
                 let mut rv = AdminSaveReturn {
                     rows_affected: 0,
-                    message_class: "success".to_owned(),
+                    level: AlertLevel::Success,
                     message: "Data Deleted".to_owned(),
                     game_data: None,
                 };
@@ -312,6 +336,8 @@ pub async fn api_admin_game_data_delete(
                                 form.id,
                             );
 
+                            rv.message = uppercase_first(table.as_str()) + &" '".to_owned() + &form.name + &"' has been deleted.".to_owned();
+
                             rv.game_data = Some(db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone()) ));
 
                             return Json(rv);
@@ -319,7 +345,7 @@ pub async fn api_admin_game_data_delete(
                             return Json(
                                 AdminSaveReturn {
                                     rows_affected: 0,
-                                    message_class: "danger".to_owned(),
+                                    level: AlertLevel::Danger,
                                     message: "You do not have access to delete this item!".to_owned(),
                                     game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone()) ) ),
                                 }
@@ -332,7 +358,7 @@ pub async fn api_admin_game_data_delete(
                         return Json(
                             AdminSaveReturn {
                                 rows_affected: 0,
-                                message_class: "danger".to_owned(),
+                                level: AlertLevel::Danger,
                                 message: "Cannot find item!".to_owned(),
                                 game_data: Some( db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone()) ) ),
                             }
@@ -344,7 +370,7 @@ pub async fn api_admin_game_data_delete(
                 return Json(
                     AdminSaveReturn {
                         rows_affected: 0,
-                        message_class: "danger".to_owned(),
+                        level: AlertLevel::Danger,
                         message: "You do not have developer access!".to_owned(),
                         game_data: None,
                     }
@@ -355,7 +381,7 @@ pub async fn api_admin_game_data_delete(
             return Json(
                 AdminSaveReturn {
                     rows_affected: 0,
-                    message_class: "danger".to_owned(),
+                    level: AlertLevel::Danger,
                     message: "You could not be authenticated!".to_owned(),
                     game_data: None,
                 }

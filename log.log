@@ -1,0 +1,2 @@
+db_conn_url mysql://savaged:REDACTED@127.0.0.1:3306/savaged
+Running on http://127.0.0.1:5001

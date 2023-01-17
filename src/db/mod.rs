@@ -1,5 +1,6 @@
 pub mod users;
 pub mod banners;
+pub mod hindrances;
 pub mod utils;
 pub mod books;
 pub mod admin_data;

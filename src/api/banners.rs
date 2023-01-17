@@ -7,14 +7,21 @@ use actix_web:: {
 
 };
 use savaged_libs::banner::Banner;
+use savaged_libs::player_character::hindrance::Hindrance;
+use crate::db::hindrances::SmallHindrance;
+
 use super::super::db::banners::{
     get_banners,
+};
+use super::super::db::hindrances::{
+    get_hindrances,
 };
 
 #[get("/_api/banners/get")]
 pub async fn api_banners_get(
     pool: Data<Pool>,
-) -> Json<Vec<Banner>> {
-    return actix_web::web::Json(get_banners( pool ));
+) -> Json<Vec<SmallHindrance>> {
+    return actix_web::web::Json(get_hindrances( pool ));
 }
+
 
