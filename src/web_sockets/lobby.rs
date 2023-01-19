@@ -102,7 +102,6 @@ impl Handler<Connect> for Lobby {
                 .iter()
                 .filter(|conn_id| *conn_id.to_owned() != msg.self_id)
                 .for_each(|conn_id| self.send_message(&format!("{} just joined!", msg.self_id), conn_id));
-
             }
             None => {
 

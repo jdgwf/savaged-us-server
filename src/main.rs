@@ -24,6 +24,7 @@ use tokio::task::{
 };
 // use serde::{Deserialize, Serialize};
 
+use db::banners::get_active_banners;
 // use std::path::PathBuf;
 use api::auth::{
     // get_user_groups,
@@ -377,6 +378,7 @@ async fn main() -> std::io::Result<()> {
 }
 
 async fn yew_render(
+    pool: Data<Pool>,
     request: HttpRequest,
 ) -> HttpResponse {
     let url = request.uri().to_string();
@@ -392,8 +394,11 @@ async fn yew_render(
             let server_renderer = ServerRenderer::<ServerApp>::with_props(
                 move || {
 
+                    let banners = Some(get_active_banners( pool ));
                     ServerAppProps {
                         url: AttrValue::from(url.clone()),
+                        banners: banners,
+                        partners: Some(Vec::new()),
                     }
                 }
             );
