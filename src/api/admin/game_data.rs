@@ -154,10 +154,7 @@ pub async fn api_admin_game_data_save(
         Some( user ) => {
             if user.has_developer_access() {
 
-
-
                 let book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
-
 
                 let item_opt= db_admin_admin_get_item(
                     pool.clone(),
@@ -199,7 +196,6 @@ pub async fn api_admin_game_data_save(
                                 }
                              );
                         }
-
 
                     }
                     None => {
@@ -243,7 +239,6 @@ pub async fn api_admin_game_data_save(
                         }
                     }
                 }
-
 
                 // rv.game_data = Some(db_admin_get_game_data( pool, table, Json(form.fetch_parameters.clone()) ));
 
@@ -351,7 +346,6 @@ pub async fn api_admin_game_data_delete(
                                 }
                              );
                         }
-
 
                     }
                     None => {

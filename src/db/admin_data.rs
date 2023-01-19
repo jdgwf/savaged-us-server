@@ -197,7 +197,6 @@ pub fn db_admin_get_game_data_paging_data(
                         None => {},
                     }
 
-
                 }
                 Err( err ) => {
                     println!("get_item_saves Error 4 {}", err );
@@ -529,7 +528,6 @@ pub fn db_admin_get_game_data(
     }
     return Vec::new();
 }
-
 
 pub fn db_admin_admin_get_item(
     pool: Data<Pool>,

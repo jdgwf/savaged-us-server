@@ -8,8 +8,6 @@ use actix_web:: {
 };
 use savaged_libs::banner::{ SimpleBanner, Banner };
 
-
-
 pub fn get_active_banners(
     pool: Data<Pool>,
 ) -> Vec<SimpleBanner> {
