@@ -99,49 +99,7 @@ pub const CONFIG_ALLOWED_IMAGE_TYPES: &'static [&'static str] = &[
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let ssr_routes = vec![
-        "/",
 
-        "/info/",
-        "/info",
-        "/info/about",
-        "/info/tech",
-        "/info/privacy-policy",
-        "/info/partners",
-        "/info/contact",
-        "/info/to-dos",
-
-        "/register",
-        // "/playground",
-        "/login",
-        "/forgot-password",
-
-        "/me/",
-        "/me",
-        "/me/settings-private",
-        "/me/settings-public",
-        "/me/notifications",
-        "/me/subscription",
-        "/me/devices",
-        "/me/api-key",
-        "/me/saves",
-        "/me/saves/",
-        "/me/saves/edit/{uuid}",
-        "/me/saves/view/{uuid}",
-        "/me/saves/edit/{uuid}/",
-        "/me/saves/view/{uuid}/",
-        "/me/campaigns/",
-        "/me/campaigns",
-
-        "/admin/",
-        "/admin/users/",
-        "/admin/game-data/",
-        "/admin/game-data/{table}/",
-        "/admin",
-        "/admin/users",
-        "/admin/game-data",
-        "/admin/game-data/{table}",
-    ];
 
     dotenv().ok();
 
@@ -336,7 +294,7 @@ async fn main() -> std::io::Result<()> {
                             // render yew app SSR.
                             .service(
                                 actix_web::web::resource(
-                                    ssr_routes.clone() // see above for routes which will render via SSR
+                                    ["/"] // see above for routes which will render via SSR
                                 ).route(actix_web::web::get().to(yew_render))
                             )
 
@@ -356,6 +314,9 @@ async fn main() -> std::io::Result<()> {
                                     "./public")
                                     .use_last_modified(true)
 
+                            )
+                            .default_service(
+                                actix_web::web::get().to(yew_render)
                             )
 
                     }).bind( (serve_ip, serve_port) )?
