@@ -1,11 +1,11 @@
+use crate::db::utils::mysql_datetime_to_chrono_utc;
 use actix_web::web::Data;
 use chrono::prelude::*;
-use crate::db::utils::mysql_datetime_to_chrono_utc;
-use mysql::Pool;
 use mysql::prelude::*;
+use mysql::Pool;
 use savaged_libs::book::Book;
 use savaged_libs::utils::bool_from_int_or_bool;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 pub fn get_books(
     pool: &Data<Pool>,
@@ -17,7 +17,6 @@ pub fn get_books(
     access_admin: bool,
     all: bool,
 ) -> Vec<Book> {
-
     let mut data_query = "
     SELECT
         id,
@@ -37,7 +36,8 @@ pub fn get_books(
 
         where  version_of = 0
         and deleted < 1
-".to_owned();
+"
+    .to_owned();
 
     if !all {
         data_query += &" and `books`.`active` > 0\n";
@@ -45,7 +45,6 @@ pub fn get_books(
     data_query += &" and ((\n";
     if access_admin {
         data_query += &" `books`.`access_admin` > 0\n";
-
     } else if access_developer {
         data_query += &" `books`.`access_developer` > 0\n";
     } else if access_wildcard {
@@ -59,87 +58,81 @@ pub fn get_books(
 
     // println!("{}", data_query);
     match pool.get_conn() {
-        Ok( mut conn) => {
-            let get_row_data_result = conn
-            .query_map(
+        Ok(mut conn) => {
+            let get_row_data_result = conn.query_map(
                 data_query,
                 |(
                     id,
                     data,
-
                     created_on,
                     created_by,
-
                     updated_on,
                     updated_by,
-
                     deleted,
                     deleted_on,
-                    deleted_by
-
+                    deleted_by,
                 ): (
                     u32,
                     Option<String>,
-
                     String,
-                    u32,
-
-                    String,
-                    u32,
-
                     u32,
                     String,
                     u32,
-                ) | {
-
+                    u32,
+                    String,
+                    u32,
+                )| {
                     let mut deleted_bool = false;
                     if deleted > 0 {
                         deleted_bool = true;
                     }
 
                     match data {
-                        Some( row_data) => {
-                            let book_result: Result<Book, serde_json::Error> = serde_json::from_str( row_data.as_ref() );
+                        Some(row_data) => {
+                            let book_result: Result<Book, serde_json::Error> =
+                                serde_json::from_str(row_data.as_ref());
                             match book_result {
-                                Ok( mut book ) => {
-                                    book.created_on = mysql_datetime_to_chrono_utc( created_on );
-                                    book.updated_on = mysql_datetime_to_chrono_utc( updated_on );
-                                    book.deleted_on = mysql_datetime_to_chrono_utc( deleted_on );
+                                Ok(mut book) => {
+                                    book.created_on = mysql_datetime_to_chrono_utc(created_on);
+                                    book.updated_on = mysql_datetime_to_chrono_utc(updated_on);
+                                    book.deleted_on = mysql_datetime_to_chrono_utc(deleted_on);
                                     book.created_by = created_by;
                                     book.deleted = deleted_bool;
                                     book.deleted_by = deleted_by;
                                     book.updated_by = updated_by;
                                     book.id = id;
 
-                                    return  book;
+                                    return book;
                                 }
-                                Err( err ) => {
-                                    println!("Error with data on book {}, {}, {}", id, err.to_string(), row_data);
+                                Err(err) => {
+                                    println!(
+                                        "Error with data on book {}, {}, {}",
+                                        id,
+                                        err.to_string(),
+                                        row_data
+                                    );
                                     return Book::default();
                                 }
                             }
-
                         }
                         None => {
                             return Book::default();
                         }
                     }
-
                 },
             );
             match get_row_data_result {
-                Ok( get_row_data ) => {
+                Ok(get_row_data) => {
                     return get_row_data;
                 }
 
-                Err( err ) => {
-                    println!("get_books Error 4 {}", err );
+                Err(err) => {
+                    println!("get_books Error 4 {}", err);
                 }
             }
-
         }
-        Err( err ) => {
-            println!("get_books Error 3 {}", err );
+        Err(err) => {
+            println!("get_books Error 3 {}", err);
         }
     }
     return Vec::new();
@@ -164,4 +157,3 @@ pub struct RowData {
     #[serde(default)]
     pub updated_on: Option<DateTime<Utc>>,
 }
-

@@ -1,37 +1,34 @@
+use crate::db::users::get_user;
 use actix_web::web::Data;
-use mysql::Pool;
+use image::io::Reader as ImageReader;
+use image::{DynamicImage, EncodableLayout, GenericImage, GenericImageView, ImageFormat}; // Using image crate: https://github.com/image-rs/image
 use lettre::transport::smtp::authentication::Credentials;
 use lettre::{
     message::{header, MultiPart, SinglePart},
     Message, SmtpTransport, Transport,
 };
-use sha2::{ Sha224, Digest};
+use mysql::Pool;
+use sha2::{Digest, Sha224};
 use voca_rs::strip::strip_tags;
-use crate::db::users::get_user;
-use image::io::Reader as ImageReader;
-use image::{DynamicImage, EncodableLayout, GenericImage, GenericImageView, ImageFormat}; // Using image crate: https://github.com/image-rs/image
 use webp::{Encoder, PixelLayout, WebPImage, WebPMemory}; // Using webp crate: https://github.com/jaredforth/webp
 
 use std::fs::File;
 use std::io::Write;
 
-pub fn encrypt_password( password: String ) -> String {
-
+pub fn encrypt_password(password: String) -> String {
     let mut sha_secret_key = "".to_owned();
     match std::env::var("SHA_SECRET_KEY") {
-        Ok( val ) => {
+        Ok(val) => {
             sha_secret_key = val.parse().unwrap();
         }
-        Err( _ ) => {
-
-        }
+        Err(_) => {}
     }
 
     let mut hasher = Sha224::new();
-    hasher.update( password.to_owned());
-    hasher.update( sha_secret_key.to_owned() );
+    hasher.update(password.to_owned());
+    hasher.update(sha_secret_key.to_owned());
     let data = hasher.finalize();
-    return format!("b'{}'", base64::encode(data) );
+    return format!("b'{}'", base64::encode(data));
 }
 
 pub async fn send_standard_email(
@@ -40,46 +37,52 @@ pub async fn send_standard_email(
     subject: String,
     html_message: String,
 ) -> bool {
-
     let mut email_from_address = "".to_owned();
     let mut email_from_name = "".to_owned();
     let mut email_subject_prefix = "".to_owned();
 
     match std::env::var("EMAIL_FROM_ADDRESS") {
-        Ok( val ) => {
+        Ok(val) => {
             email_from_address = val.parse().unwrap();
         }
-        Err( err ) => {
-            println!("Error .env EMAIL_FROM_ADDRESS env variable not set! {}", err.to_string());
+        Err(err) => {
+            println!(
+                "Error .env EMAIL_FROM_ADDRESS env variable not set! {}",
+                err.to_string()
+            );
             return false;
         }
     }
 
     match std::env::var("EMAIL_FROM_NAME") {
-        Ok( val ) => {
+        Ok(val) => {
             email_from_name = val.parse().unwrap();
         }
-        Err( err ) => {
-            println!("Error .env EMAIL_FROM_NAME env variable not set! {}", err.to_string());
+        Err(err) => {
+            println!(
+                "Error .env EMAIL_FROM_NAME env variable not set! {}",
+                err.to_string()
+            );
             return false;
         }
     }
 
     match std::env::var("EMAIL_SUBJECT_PREFIX") {
-        Ok( val ) => {
+        Ok(val) => {
             email_subject_prefix = val.parse().unwrap();
         }
-        Err( _ ) => {
+        Err(_) => {
             // println!("Error EMAIL_SUBJECT_PREFIX env variable not set!");
             // return false;
         }
     }
 
-    let compound_subject = email_subject_prefix.to_string() + &" ".to_string() + &subject.to_string();
+    let compound_subject =
+        email_subject_prefix.to_string() + &" ".to_string() + &subject.to_string();
 
-    let user_result = get_user( pool, user_id );
+    let user_result = get_user(pool, user_id);
     match user_result {
-        Some( user ) => {
+        Some(user) => {
             let result = send_email(
                 email_from_address,
                 email_from_name,
@@ -90,17 +93,16 @@ pub async fn send_standard_email(
                 false,
                 "".to_string(),
                 "".to_string(),
-            ).await;
+            )
+            .await;
             return result;
         }
-        None => {
-
-        }
+        None => {}
     }
     return false;
 }
 
-pub async fn send_email (
+pub async fn send_email(
     from: String,
     from_name: String,
     to: String,
@@ -111,23 +113,22 @@ pub async fn send_email (
     reply_to: String,
     reply_to_name: String,
 ) -> bool {
-
     let mut smtp_host = "".to_string();
     match std::env::var("MAIL_HOST") {
-        Ok( val ) => {
+        Ok(val) => {
             smtp_host = val.parse().unwrap();
         }
-        Err( _ ) => {
+        Err(_) => {
             println!("Error MAIL_HOST env variable not set!");
             return false;
         }
     }
     let mut smtp_username = "".to_string();
     match std::env::var("MAIL_USERNAME") {
-        Ok( val ) => {
+        Ok(val) => {
             smtp_username = val.parse().unwrap();
         }
-        Err( _ ) => {
+        Err(_) => {
             println!("Error MAIL_USERNAME env variable not set!");
             return false;
         }
@@ -135,10 +136,10 @@ pub async fn send_email (
 
     let mut smtp_password = "".to_string();
     match std::env::var("MAIL_PASSWORD") {
-        Ok( val ) => {
+        Ok(val) => {
             smtp_password = val.parse().unwrap();
         }
-        Err( _ ) => {
+        Err(_) => {
             println!("Error MAIL_PASSWORD env variable not set!");
             return false;
         }
@@ -146,10 +147,10 @@ pub async fn send_email (
 
     let mut smtp_port: u16 = 587;
     match std::env::var("MAIL_PORT") {
-        Ok( val ) => {
+        Ok(val) => {
             smtp_port = val.parse().unwrap();
         }
-        Err( _ ) => {
+        Err(_) => {
             println!("Error MAIL_PORT env variable not set!");
             return false;
         }
@@ -157,14 +158,13 @@ pub async fn send_email (
 
     let mut smtp_secure = false;
     match std::env::var("MAIL_SECURE") {
-        Ok( val ) => {
+        Ok(val) => {
             let int_value: u8 = val.parse().unwrap();
             if int_value > 0 {
                 smtp_secure = true;
             }
-
         }
-        Err( _ ) => {
+        Err(_) => {
             println!("Error MAIL_SECURE env variable not set!");
             return false;
         }
@@ -172,12 +172,12 @@ pub async fn send_email (
 
     let mut stmp_from = from.clone();
     if !from_name.is_empty() {
-        stmp_from = from_name + &"<".to_owned() + &from.to_owned() + &">".to_owned() ;
+        stmp_from = from_name + &"<".to_owned() + &from.to_owned() + &">".to_owned();
     }
 
     let mut stmp_to = to.clone();
     if !to_name.is_empty() {
-        stmp_to = to_name + &"<".to_owned() + &to.to_owned() + &">".to_owned() ;
+        stmp_to = to_name + &"<".to_owned() + &to.to_owned() + &">".to_owned();
     }
 
     let mut email = Message::builder()
@@ -190,19 +190,22 @@ pub async fn send_email (
                 .singlepart(
                     SinglePart::builder()
                         .header(header::ContentType::TEXT_PLAIN)
-                        .body(String::from( strip_tags(&html_message.clone()) )), // Every message should have a plain text fallback.
+                        .body(String::from(strip_tags(&html_message.clone()))), // Every message should have a plain text fallback.
                 )
                 .singlepart(
                     SinglePart::builder()
                         .header(header::ContentType::TEXT_HTML)
-                        .body(String::from( _standardize_html_email(html_message.clone(), admin_footer) )),
+                        .body(String::from(_standardize_html_email(
+                            html_message.clone(),
+                            admin_footer,
+                        ))),
                 ),
         )
         .unwrap();
     if !reply_to.is_empty() {
         let mut reply_to = reply_to.clone();
         if !reply_to_name.is_empty() {
-            reply_to = reply_to_name + &"<".to_owned() + &reply_to.to_owned() + &">".to_owned() ;
+            reply_to = reply_to_name + &"<".to_owned() + &reply_to.to_owned() + &">".to_owned();
         }
 
         email = Message::builder()
@@ -217,16 +220,18 @@ pub async fn send_email (
                     .singlepart(
                         SinglePart::builder()
                             .header(header::ContentType::TEXT_PLAIN)
-                            .body(String::from( strip_tags(&html_message.clone()) )), // Every message should have a plain text fallback.
+                            .body(String::from(strip_tags(&html_message.clone()))), // Every message should have a plain text fallback.
                     )
                     .singlepart(
                         SinglePart::builder()
                             .header(header::ContentType::TEXT_HTML)
-                            .body(String::from( _standardize_html_email(html_message.clone(), admin_footer) )),
+                            .body(String::from(_standardize_html_email(
+                                html_message.clone(),
+                                admin_footer,
+                            ))),
                     ),
             )
             .unwrap();
-
     }
     let creds = Credentials::new(smtp_username, smtp_password);
 
@@ -236,7 +241,7 @@ pub async fn send_email (
     // Open a remote connection to gmail
     println!("smtp_secure {}", smtp_secure);
     if smtp_secure {
-        let mailer = SmtpTransport::starttls_relay(smtp_host.as_str() )
+        let mailer = SmtpTransport::starttls_relay(smtp_host.as_str())
             .unwrap()
             .port(smtp_port)
             .credentials(creds)
@@ -244,16 +249,16 @@ pub async fn send_email (
         match mailer.send(&email) {
             Ok(_) => println!("Email sent successfully!"),
             Err(e) => println!("ERROR Could not send email: {:?}", e),
-            }
+        }
     } else {
-        let mailer = SmtpTransport::builder_dangerous(smtp_host.as_str() )
+        let mailer = SmtpTransport::builder_dangerous(smtp_host.as_str())
             .port(smtp_port)
             .credentials(creds)
             .build();
         match mailer.send(&email) {
             Ok(_) => println!("Email sent successfully!"),
             Err(e) => println!("ERROR Could not send email: {:?}", e),
-            }
+        }
     }
 
     // Send the email
@@ -313,17 +318,13 @@ pub async fn send_email (
     return false;
 }
 
-fn _standardize_html_email(
-    incoming_message: String,
-    admin_unsubscribe: bool,
-) -> String {
-
+fn _standardize_html_email(incoming_message: String, admin_unsubscribe: bool) -> String {
     let mut config_site_title = "".to_string();
     match std::env::var("SITE_TITLE") {
-        Ok( val ) => {
+        Ok(val) => {
             config_site_title = val.parse().unwrap();
         }
-        Err( _ ) => {
+        Err(_) => {
             println!("Error SITE_TITLE env variable not set!");
             return "".to_string();
         }
@@ -331,10 +332,10 @@ fn _standardize_html_email(
 
     let mut config_live_host = "".to_string();
     match std::env::var("ENV_URL") {
-        Ok( val ) => {
+        Ok(val) => {
             config_live_host = val.parse().unwrap();
         }
-        Err( _ ) => {
+        Err(_) => {
             println!("Error ENV_URL env variable not set!");
             return "".to_string();
         }
@@ -353,8 +354,7 @@ fn _standardize_html_email(
     unsubscribe_html = unsubscribe_html
         .replace("{config_site_title}", config_site_title.as_ref())
         .replace("{config_live_host}", config_live_host.as_ref())
-        .replace("{incoming_message}", incoming_message.as_ref() )
-    ;
+        .replace("{incoming_message}", incoming_message.as_ref());
 
     let message = r#"
 <!DOCTYPE html>
@@ -553,10 +553,8 @@ fn _standardize_html_email(
     return message
         .replace("{config_site_title}", config_site_title.as_ref())
         .replace("{config_live_host}", config_live_host.as_ref())
-        .replace("{incoming_message}", incoming_message.as_ref() )
-        .replace("{unsubscribe_html}", &unsubscribe_html)
-    ;
-
+        .replace("{incoming_message}", incoming_message.as_ref())
+        .replace("{unsubscribe_html}", &unsubscribe_html);
 }
 
 pub fn image_to_webp(
@@ -569,7 +567,7 @@ pub fn image_to_webp(
     let mut image: DynamicImage = ImageReader::open(file_path).unwrap().decode().unwrap();
 
     if crop_square {
-        image = _square_image( image );
+        image = _square_image(image);
     }
     image.thumbnail(max_height_or_width, max_height_or_width);
 
@@ -595,7 +593,7 @@ pub fn resize_image_max(
     let mut image: DynamicImage = ImageReader::open(file_path).unwrap().decode().unwrap();
 
     if crop_square {
-        image = _square_image( image );
+        image = _square_image(image);
     }
 
     image.thumbnail(max_height_or_width, max_height_or_width);
@@ -613,15 +611,15 @@ pub fn resize_image_max(
     return Some(file_path.to_owned());
 }
 
-fn _square_image( mut image: DynamicImage ) -> DynamicImage {
-    let (w,h) = image.dimensions();
+fn _square_image(mut image: DynamicImage) -> DynamicImage {
+    let (w, h) = image.dimensions();
 
     if w != h {
         if w > h {
-            let new_pos = (w -h) / 2;
+            let new_pos = (w - h) / 2;
             image = image.crop(new_pos, 0, h, h);
         } else {
-            let new_pos = (h -w) / 2;
+            let new_pos = (h - w) / 2;
             image = image.crop(0, new_pos, w, w);
         }
     }

@@ -1,91 +1,78 @@
-
-
+use actix_easy_multipart::tempfile::Tempfile;
+use actix_easy_multipart::text::Text;
+use actix_easy_multipart::MultipartForm;
 use mysql::Pool;
 use savaged_libs::user::ImageUpdateResult;
 use std::fs;
 use std::path::Path;
-use actix_easy_multipart::tempfile::Tempfile;
-use actix_easy_multipart::text::Text;
-use actix_easy_multipart::MultipartForm;
 
-use actix_web:: {
+use actix_web::HttpRequest;
+use actix_web::{
     // get,
     post,
 
+    web::Data,
     // multipart
     web::Json,
-    web::Data,
 };
-use actix_web::HttpRequest;
 
-use crate::CONFIG_ALLOWED_IMAGE_TYPES;
 use crate::utils::encrypt_password;
 use crate::utils::image_to_webp;
 use crate::utils::resize_image_max;
+use crate::CONFIG_ALLOWED_IMAGE_TYPES;
 
 use super::super::db::users::{
-    update_user,
-    update_password,
-    get_remote_user,
-    update_user_login_tokens,
+    get_remote_user, save_username, update_password, update_user, update_user_login_tokens,
     username_available,
-    save_username,
 };
 
-use serde::{Serialize, Deserialize};
-use savaged_libs::user::{ User, LoginToken, UserUpdateResult };
+use savaged_libs::user::{LoginToken, User, UserUpdateResult};
+use serde::{Deserialize, Serialize};
 
 #[post("/_api/user/save-username")]
-pub async fn api_user_save_username (
+pub async fn api_user_save_username(
     pool: Data<Pool>,
     form: Json<UserNameForm>,
     request: HttpRequest,
 ) -> Json<bool> {
-
     // println!("api_user_save_username called");
 
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
     let mut username = "".to_owned();
     match &form.login_token {
-        Some( val ) => {
+        Some(val) => {
             login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
-        Some( val ) => {
+        Some(val) => {
             api_key = Some(val.to_owned());
         }
         None => {}
     }
     match &form.username {
-        Some( val ) => {
+        Some(val) => {
             username = val.to_owned();
         }
         None => {}
     }
 
-    let user_option = get_remote_user(
-        pool.clone(),
-        api_key,
-        login_token,
-        request,
-    );
+    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
 
     match user_option {
-        Some( user ) => {
+        Some(user) => {
             // println!("api_user_username_available called {}", &username);
-            let result_count = save_username( pool.clone(), user, username.clone() );
+            let result_count = save_username(pool.clone(), user, username.clone());
             // println!("api_user_username_available result {}", &result_count);
             if result_count == 1 {
-                return Json( true );
+                return Json(true);
             }
         }
         None => {}
     }
     return Json(false);
-
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -96,45 +83,39 @@ pub struct UserNameForm {
 }
 
 #[post("/_api/user/username-available")]
-pub async fn api_user_username_available (
+pub async fn api_user_username_available(
     pool: Data<Pool>,
     form: Json<UserNameForm>,
     request: HttpRequest,
 ) -> Json<bool> {
-
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
     let mut username = "".to_owned();
     match &form.login_token {
-        Some( val ) => {
+        Some(val) => {
             login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
-        Some( val ) => {
+        Some(val) => {
             api_key = Some(val.to_owned());
         }
         None => {}
     }
     match &form.username {
-        Some( val ) => {
+        Some(val) => {
             username = val.to_owned();
         }
         None => {}
     }
 
-    let user_option = get_remote_user(
-        pool.clone(),
-        api_key,
-        login_token,
-        request,
-    );
+    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
 
     match user_option {
-        Some( user ) => {
+        Some(user) => {
             // println!("api_user_username_available called {}", &username);
-            return Json( username_available( pool.clone(), user, username.clone() ));
+            return Json(username_available(pool.clone(), user, username.clone()));
         }
         None => {}
     }
@@ -154,47 +135,40 @@ pub async fn api_user_token_update_name(
     pool: Data<Pool>,
     form: Json<UpdateTokenNameForm>,
     request: HttpRequest,
-) -> Json< Vec<LoginToken> > {
-
+) -> Json<Vec<LoginToken>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
     let mut selected_token = "".to_owned();
     let mut new_value = "".to_owned();
     match &form.login_token {
-        Some( val ) => {
+        Some(val) => {
             login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
-        Some( val ) => {
+        Some(val) => {
             api_key = Some(val.to_owned());
         }
         None => {}
     }
     match &form.selected_token {
-        Some( val ) => {
+        Some(val) => {
             selected_token = val.to_owned();
         }
         None => {}
     }
     match &form.new_value {
-        Some( val ) => {
+        Some(val) => {
             new_value = val.to_owned();
         }
         None => {}
     }
 
-    let user_option = get_remote_user(
-        pool.clone(),
-        api_key,
-        login_token,
-        request,
-    );
+    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
 
     match user_option {
-        Some( user ) => {
-
+        Some(user) => {
             let mut return_tokens = user.login_tokens.clone();
 
             for token in &mut return_tokens {
@@ -203,16 +177,14 @@ pub async fn api_user_token_update_name(
                 }
             }
 
-            update_user_login_tokens( pool.clone(), user.id, return_tokens.clone() );
+            update_user_login_tokens(pool.clone(), user.id, return_tokens.clone());
 
-            return Json( return_tokens.clone() );
+            return Json(return_tokens.clone());
         }
-        None => {
-
-        }
+        None => {}
     }
 
-    return Json( Vec::new() );
+    return Json(Vec::new());
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -230,8 +202,7 @@ pub async fn api_user_update_settings(
     pool: Data<Pool>,
     form: Json<UpdateSettingData>,
     request: HttpRequest,
-) -> Json< UserUpdateResult > {
-
+) -> Json<UserUpdateResult> {
     let mut return_value: UserUpdateResult = UserUpdateResult {
         success: false,
         password_changed: false,
@@ -242,32 +213,26 @@ pub async fn api_user_update_settings(
     let mut api_key: Option<String> = None;
 
     match &form.login_token {
-        Some( val ) => {
+        Some(val) => {
             login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
-        Some( val ) => {
+        Some(val) => {
             api_key = Some(val.to_owned());
         }
         None => {}
     }
 
-    let user_option = get_remote_user(
-        pool.clone(),
-        api_key,
-        login_token,
-        request,
-    );
+    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
 
     match user_option {
-        Some( user ) => {
-
-            let user_data: Result<User, serde_json::Error> = serde_json::from_str( &form.current_user );
+        Some(user) => {
+            let user_data: Result<User, serde_json::Error> =
+                serde_json::from_str(&form.current_user);
             match user_data {
                 Ok(mut user_settings) => {
-
                     // Override any potential hacker variables in POST
                     user_settings.is_premium = user.is_premium;
                     user_settings.is_ace = user.is_ace;
@@ -280,9 +245,18 @@ pub async fn api_user_update_settings(
                     user_settings.last_seen_on = user.last_seen_on;
 
                     let data_dir_path = "./data/uploads/";
-                    let png_filename = data_dir_path.to_owned() + &"users/".to_owned() + &user_settings.id.to_string()  + &".png".to_owned();
-                    let jpg_filename = data_dir_path.to_owned() + &"users/".to_owned() + &user_settings.id.to_string()  + &".jpg".to_owned();
-                    let webp_filename = data_dir_path.to_owned() + &"users/".to_owned() + &user_settings.id.to_string()  + &".webp".to_owned();
+                    let png_filename = data_dir_path.to_owned()
+                        + &"users/".to_owned()
+                        + &user_settings.id.to_string()
+                        + &".png".to_owned();
+                    let jpg_filename = data_dir_path.to_owned()
+                        + &"users/".to_owned()
+                        + &user_settings.id.to_string()
+                        + &".jpg".to_owned();
+                    let webp_filename = data_dir_path.to_owned()
+                        + &"users/".to_owned()
+                        + &user_settings.id.to_string()
+                        + &".webp".to_owned();
 
                     if form.remove_image {
                         if std::path::Path::new(&png_filename).exists() {
@@ -313,13 +287,15 @@ pub async fn api_user_update_settings(
 
                     if !user_settings.email.is_empty() {
                         let mut new_encrypted_pass: Option<String> = None;
-                        if
-                            form.password != None && !form.password.as_ref().unwrap().is_empty()
-                            && form.repeat_password != None && !form.repeat_password.as_ref().unwrap().is_empty()
+                        if form.password != None
+                            && !form.password.as_ref().unwrap().is_empty()
+                            && form.repeat_password != None
+                            && !form.repeat_password.as_ref().unwrap().is_empty()
                             && form.repeat_password.as_ref() == form.password.as_ref()
                         {
                             return_value.password_changed = true;
-                            new_encrypted_pass = Some(encrypt_password( form.password.clone().unwrap().to_owned() ));
+                            new_encrypted_pass =
+                                Some(encrypt_password(form.password.clone().unwrap().to_owned()));
                             update_password(
                                 pool.clone(),
                                 user_settings.clone(),
@@ -327,24 +303,21 @@ pub async fn api_user_update_settings(
                             );
                         }
 
-                        let rows_affected = update_user(
-                            pool.clone(),
-                            user_settings.clone(),
-                        );
+                        let rows_affected = update_user(pool.clone(), user_settings.clone());
 
                         if rows_affected == 1 {
                             return_value.success = true;
                             return_value.message = "User Updated".to_string();
                         }
-
                     } else {
-                        return_value.message = "Email Address cannot be empty - this might be a data transfer error.".to_string();
+                        return_value.message =
+                            "Email Address cannot be empty - this might be a data transfer error."
+                                .to_string();
                     }
                 }
-                Err( _err ) => {
+                Err(_err) => {
                     return_value.message = "No user data sent?".to_string();
                 }
-
             }
         }
         None => {
@@ -352,7 +325,7 @@ pub async fn api_user_update_settings(
         }
     }
 
-    return Json( return_value );
+    return Json(return_value);
 }
 
 #[post("/_api/user/token-remove")]
@@ -360,26 +333,25 @@ pub async fn api_user_token_remove(
     pool: Data<Pool>,
     form: Json<UpdateTokenNameForm>,
     request: HttpRequest,
-) -> Json< Vec<LoginToken> > {
-
+) -> Json<Vec<LoginToken>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
     let mut selected_token = "".to_owned();
     // let mut new_value = "".to_owned();
     match &form.login_token {
-        Some( val ) => {
+        Some(val) => {
             login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
-        Some( val ) => {
+        Some(val) => {
             api_key = Some(val.to_owned());
         }
         None => {}
     }
     match &form.selected_token {
-        Some( val ) => {
+        Some(val) => {
             selected_token = val.to_owned();
         }
         None => {}
@@ -391,34 +363,26 @@ pub async fn api_user_token_remove(
     //     None => {}
     // }
 
-    let user_option = get_remote_user(
-        pool.clone(),
-        api_key,
-        login_token,
-        request,
-    );
+    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
 
     match user_option {
-        Some( user ) => {
-
+        Some(user) => {
             let mut return_tokens: Vec<LoginToken> = Vec::new();
 
             for token in user.login_tokens.iter() {
                 if token.token != selected_token {
-                    return_tokens.push( token.clone() );
+                    return_tokens.push(token.clone());
                 }
             }
 
-            update_user_login_tokens( pool.clone(), user.id, return_tokens.clone() );
+            update_user_login_tokens(pool.clone(), user.id, return_tokens.clone());
 
-            return Json( return_tokens.clone() );
+            return Json(return_tokens.clone());
         }
-        None => {
-
-        }
+        None => {}
     }
 
-    return Json( Vec::new() );
+    return Json(Vec::new());
 }
 
 #[derive(MultipartForm)]
@@ -436,8 +400,7 @@ pub async fn api_user_set_user_image_data(
     pool: Data<Pool>,
     form: MultipartForm<ImageDataForm>,
     request: HttpRequest,
-) -> Json< ImageUpdateResult > {
-
+) -> Json<ImageUpdateResult> {
     let mut rv: ImageUpdateResult = ImageUpdateResult {
         success: false,
         message: "Not Authenticated".to_owned(),
@@ -450,25 +413,25 @@ pub async fn api_user_set_user_image_data(
     let mut crop_square: bool = false;
 
     match &form.login_token {
-        Some( val ) => {
+        Some(val) => {
             login_token = Some(val.as_str().to_owned());
         }
         None => {}
     }
     match &form.api_key {
-        Some( val ) => {
+        Some(val) => {
             api_key = Some(val.as_str().to_owned());
         }
         None => {}
     }
     match &form.upload_type {
-        Some( val ) => {
+        Some(val) => {
             upload_type = val.as_str().to_owned();
         }
         None => {}
     }
     match &form.crop_square {
-        Some( val ) => {
+        Some(val) => {
             if !val.as_str().to_owned().is_empty() {
                 crop_square = true;
             }
@@ -489,24 +452,34 @@ pub async fn api_user_set_user_image_data(
     //     .map(|m| m.as_ref())
     //     .unwrap_or("null");
 
-    let user_option = get_remote_user(
-        pool.clone(),
-        api_key,
-        login_token,
-        request,
-    );
+    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
 
     match user_option {
-        Some( user ) => {
-
+        Some(user) => {
             for allowed in CONFIG_ALLOWED_IMAGE_TYPES {
                 if allowed == &content_type {
+                    let _ = fs::create_dir_all(
+                        "/data/uploads/".to_owned() + &"users/" + &user.id.to_string(),
+                    );
 
-                    let _ = fs::create_dir_all( "/data/uploads/".to_owned() + &"users/" + &user.id.to_string() );
-
-                    let mut png_filename = "./data/uploads/".to_owned() + &"users/" + &user.id.to_string() + &"-session-" + &upload_type.as_str() + &".png";
-                    let mut jpg_filename = "./data/uploads/".to_owned() + &"users/" + &user.id.to_string() + &"-session-" + &upload_type.as_str() + &".jpg";
-                    let mut webp_filename = "./data/uploads/".to_owned() + &"users/" + &user.id.to_string() + &"-session-" + &upload_type.as_str() + &".webp";
+                    let mut png_filename = "./data/uploads/".to_owned()
+                        + &"users/"
+                        + &user.id.to_string()
+                        + &"-session-"
+                        + &upload_type.as_str()
+                        + &".png";
+                    let mut jpg_filename = "./data/uploads/".to_owned()
+                        + &"users/"
+                        + &user.id.to_string()
+                        + &"-session-"
+                        + &upload_type.as_str()
+                        + &".jpg";
+                    let mut webp_filename = "./data/uploads/".to_owned()
+                        + &"users/"
+                        + &user.id.to_string()
+                        + &"-session-"
+                        + &upload_type.as_str()
+                        + &".webp";
                     png_filename = png_filename.replace("-session-user", "");
                     jpg_filename = jpg_filename.replace("-session-user", "");
                     webp_filename = webp_filename.replace("-session-user", "");
@@ -527,19 +500,19 @@ pub async fn api_user_set_user_image_data(
                     if &content_type == &"image/png" {
                         save_file_name = png_filename.to_owned();
                         let _ = fs::copy(form.image.file.path().to_str().unwrap(), &save_file_name);
-                        let _ = image_to_webp( &png_filename, &webp_filename, 1000, crop_square );
+                        let _ = image_to_webp(&png_filename, &webp_filename, 1000, crop_square);
 
                         let _ = fs::remove_file(&png_filename);
                     } else if &content_type == &"image/jpg" || &content_type == &"image/jpeg" {
                         save_file_name = jpg_filename.to_owned();
                         let _ = fs::copy(form.image.file.path().to_str().unwrap(), &save_file_name);
 
-                        let _ = image_to_webp( &jpg_filename, &webp_filename, 1000, crop_square );
+                        let _ = image_to_webp(&jpg_filename, &webp_filename, 1000, crop_square);
 
                         let _ = fs::remove_file(&jpg_filename);
                     } else {
                         let _ = fs::copy(form.image.file.path().to_str().unwrap(), &save_file_name);
-                        let _ = resize_image_max( &webp_filename, 1000, crop_square );
+                        let _ = resize_image_max(&webp_filename, 1000, crop_square);
                     }
 
                     rv.success = true;
@@ -547,13 +520,11 @@ pub async fn api_user_set_user_image_data(
                     rv.image_url = webp_filename.replace("/data/uploads/", "/data-images/");
                 }
             }
-            rv.message = "Cannot upload image, only jpg, jpeg, or png files are allowed.".to_owned();
+            rv.message =
+                "Cannot upload image, only jpg, jpeg, or png files are allowed.".to_owned();
         }
-        None => {
-
-        }
+        None => {}
     }
 
-    return Json( rv );
+    return Json(rv);
 }
-

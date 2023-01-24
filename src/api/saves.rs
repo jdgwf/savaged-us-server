@@ -11,31 +11,25 @@ use savaged_libs::save_db_row::SaveDBRow;
 // use chrono_tz::US::Central;
 // use actix_multipart::Multipart;
 // use chrono_tz::Tz;
-use actix_web:: {
+use crate::api::auth::ApiKeyOrToken;
+use crate::db::saves::get_user_saves;
+use actix_web::HttpRequest;
+use actix_web::{
     // get,
     post,
+    web::Data,
+    // web::Form,
+    // HttpResponse,
+    // http::{header::ContentType, StatusCode }
     // put,
     // error::ResponseError,
     // web::Path,
     // web,
     web::Json,
-    web::Data,
-    // web::Form,
-    // HttpResponse,
-    // http::{header::ContentType, StatusCode }
 };
-use actix_web::HttpRequest;
-use crate::api::auth::ApiKeyOrToken;
-use crate::db::saves::get_user_saves;
 // use crate::utils::encrypt_password;
 
-use super::super::db::users::{
-    // log_user_in,
-    // get_user,
-    // create_login_token,
-    get_remote_user,
-    // update_user_login_tokens,
-};
+use super::super::db::users::get_remote_user;
 
 // use sha2::{Sha256, Sha512, Sha224, Digest};
 // use serde_json::Error;
@@ -49,18 +43,17 @@ pub async fn auth_get_user_saves(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
     request: HttpRequest,
-) -> Json< Vec<SaveDBRow> > {
-
+) -> Json<Vec<SaveDBRow>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
     match &form.login_token {
-        Some( val ) => {
+        Some(val) => {
             login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
-        Some( val ) => {
+        Some(val) => {
             api_key = Some(val.to_owned());
         }
         None => {}
@@ -69,27 +62,16 @@ pub async fn auth_get_user_saves(
     // println!("api_key {:?}", api_key);
     // println!("login_token {:?}", login_token);
 
-    let user = get_remote_user(
-        pool.clone(),
-        api_key,
-        login_token,
-        request,
-    );
+    let user = get_remote_user(pool.clone(), api_key, login_token, request);
 
     match user {
-        Some( user ) => {
-
-            let saves = get_user_saves(
-                &pool,
-                user.id,
-                None,
-                false,
-            );
-            return Json( saves );
+        Some(user) => {
+            let saves = get_user_saves(&pool, user.id, None, false);
+            return Json(saves);
         }
 
         None => {
-            return Json( Vec::new() );
+            return Json(Vec::new());
         }
     }
 }

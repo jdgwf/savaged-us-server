@@ -1,8 +1,8 @@
 use crate::db::users::get_user_from_login_token;
-use crate::web_sockets::ServerWebsocket;
 use crate::web_sockets::Lobby;
+use crate::web_sockets::ServerWebsocket;
 use actix::Addr;
-use actix_web::{get, web::Data, web::Payload, Error, HttpResponse, HttpRequest};
+use actix_web::{get, web::Data, web::Payload, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
 use mysql::Pool;
 
@@ -14,12 +14,7 @@ pub async fn web_socket_router(
     // Path(group_id): Path<Uuid>,
     chat_server: Data<Addr<Lobby>>,
 ) -> Result<HttpResponse, Error> {
-
-    let user = get_user_from_login_token(
-        pool.clone(),
-        None,
-        req.clone(),
-    );
+    let user = get_user_from_login_token(pool.clone(), None, req.clone());
 
     let ws = ServerWebsocket::new(
         user,

@@ -1,21 +1,23 @@
 mod handle_message;
-mod messages;
 pub mod lobby;
+mod messages;
 pub mod web_socket_router;
 
+use self::lobby::Lobby;
+use self::messages::{Connect, Disconnect, WsMessage};
 use actix::ActorContext;
 use actix::ActorFutureExt;
 use actix::WrapFuture;
-use actix::{Actor, StreamHandler, AsyncContext, Addr, Running, fut, ContextFutureSpawner, Handler};
-use actix_web::HttpRequest;
+use actix::{
+    fut, Actor, Addr, AsyncContext, ContextFutureSpawner, Handler, Running, StreamHandler,
+};
 use actix_web::web::Data;
+use actix_web::HttpRequest;
 use actix_web_actors::ws;
 use handle_message::handle_message;
-use mysql::{Pool};
+use mysql::Pool;
 use savaged_libs::user::User;
 use savaged_libs::websocket_message::WebSocketMessage;
-use self::lobby::Lobby;
-use self::messages::{Connect, Disconnect, WsMessage};
 use serde_json;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
@@ -39,10 +41,7 @@ pub struct ServerWebsocket {
 impl Actor for ServerWebsocket {
     type Context = ws::WebsocketContext<Self>;
 
-    fn started(
-        &mut self,
-        ctx: &mut Self::Context
-    ) {
+    fn started(&mut self, ctx: &mut Self::Context) {
         self.hb(ctx);
 
         let addr = ctx.address();
@@ -64,11 +63,11 @@ impl Actor for ServerWebsocket {
             .wait(ctx);
     }
 
-    fn stopping(
-        &mut self,
-        _: &mut Self::Context
-    ) -> Running {
-        self.chat_server.do_send(Disconnect { id: self.id, room_id: self.room_id });
+    fn stopping(&mut self, _: &mut Self::Context) -> Running {
+        self.chat_server.do_send(Disconnect {
+            id: self.id,
+            room_id: self.room_id,
+        });
         Running::Stop
     }
 }
@@ -76,79 +75,67 @@ impl Actor for ServerWebsocket {
 impl Handler<WsMessage> for ServerWebsocket {
     type Result = ();
 
-    fn handle(
-        &mut self,
-        msg: WsMessage,
-        ctx: &mut Self::Context
-    ) {
+    fn handle(&mut self, msg: WsMessage, ctx: &mut Self::Context) {
         ctx.text(msg.0);
     }
 }
 
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
-    fn handle(
-        &mut self,
-        msg: Result<ws::Message, ws::ProtocolError>,
-        ctx: &mut Self::Context,
-    )
-    {
+    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match msg {
-            Ok( actix_web_actors::ws::Message::Continuation( _ )) => {}
+            Ok(actix_web_actors::ws::Message::Continuation(_)) => {}
             Ok(actix_web_actors::ws::Message::Nop) => {}
 
             Ok(ws::Message::Ping(msg)) => {
                 ctx.pong(&msg);
                 self.hb = Instant::now();
-            },
+            }
             Ok(ws::Message::Pong(_)) => {
                 self.hb = Instant::now();
-            },
+            }
             Ok(ws::Message::Text(sent_data)) => {
                 // ctx.text(text);
-                let msg_result: Result<WebSocketMessage, serde_json::Error> = serde_json::from_str(&sent_data);
+                let msg_result: Result<WebSocketMessage, serde_json::Error> =
+                    serde_json::from_str(&sent_data);
                 match msg_result {
-                    Ok( msg ) => {
-                        handle_message(
-                            msg,
-                            ctx,
-                            self,
-                        );
-
+                    Ok(msg) => {
+                        handle_message(msg, ctx, self);
                     }
-                    Err( err ) => {
-                        println!("ERROR websockets::StreamHandler json from_str error {}, {}", err.to_string(), &sent_data );
-
+                    Err(err) => {
+                        println!(
+                            "ERROR websockets::StreamHandler json from_str error {}, {}",
+                            err.to_string(),
+                            &sent_data
+                        );
                     }
                 }
-            },
+            }
 
             Ok(ws::Message::Binary(bin)) => {
                 ctx.binary(bin);
-            },
+            }
 
-            Ok( ws::Message::Close( closed ) ) => {
-                println!("Closed event {:?}", closed );
+            Ok(ws::Message::Close(closed)) => {
+                println!("Closed event {:?}", closed);
                 ctx.close(closed);
                 // ctx.stop();
             }
 
-            Err( _err ) => {
-//                println!("StreamHandler handle error {:?}", err );
-            },
-
+            Err(_err) => {
+                //                println!("StreamHandler handle error {:?}", err );
+            }
         }
     }
 }
 
 impl ServerWebsocket {
-    pub fn new (
+    pub fn new(
         // room_id: Uuid,
         user: Option<User>,
         pool: Data<Pool>,
         chat_server: Addr<Lobby>,
         req: HttpRequest,
     ) -> ServerWebsocket {
-
         let conn_info = req.connection_info();
 
         let mut real_remote_addy = "".to_string();
@@ -157,32 +144,26 @@ impl ServerWebsocket {
 
         let real_remote_addy_option = conn_info.realip_remote_addr();
         match real_remote_addy_option {
-            Some( val ) => {
+            Some(val) => {
                 real_remote_addy = val.to_string();
             }
-            None => {
-
-            }
+            None => {}
         }
 
         let user_agent_option = req.headers().get("user-agent");
         match user_agent_option {
-            Some( val ) => {
+            Some(val) => {
                 user_agent = format!("{:?}", val).to_string().replace("\"", "");
             }
-            None => {
-
-            }
+            None => {}
         }
 
         let x_forwarded_for_option = req.headers().get("x-forwarded-for");
         match x_forwarded_for_option {
-            Some( val ) => {
+            Some(val) => {
                 x_forwarded_for = format!("{:?}", val).to_string().replace("\"", "");
             }
-            None => {
-
-            }
+            None => {}
         }
 
         if !x_forwarded_for.is_empty() {
@@ -202,14 +183,14 @@ impl ServerWebsocket {
         }
     }
 
-    fn hb(
-        &self,
-        ctx: &mut ws::WebsocketContext<Self>
-    ) {
+    fn hb(&self, ctx: &mut ws::WebsocketContext<Self>) {
         ctx.run_interval(HEARTBEAT_INTERVAL, |act, ctx| {
             if Instant::now().duration_since(act.hb) > CLIENT_TIMEOUT {
                 // println!("Disconnecting failed heartbeat");
-                act.chat_server.do_send(Disconnect { id: act.id, room_id: act.room_id });
+                act.chat_server.do_send(Disconnect {
+                    id: act.id,
+                    room_id: act.room_id,
+                });
                 ctx.stop();
                 return;
             }

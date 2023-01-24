@@ -1,6 +1,6 @@
+use crate::db::utils::mysql_datetime_to_chrono_utc;
 use actix_web::web::Data;
 use chrono::prelude::*;
-use crate::db::utils::mysql_datetime_to_chrono_utc;
 use mysql::prelude::*;
 use mysql::Pool;
 use savaged_libs::player_character::armor::Armor;
@@ -10,7 +10,7 @@ use savaged_libs::player_character::gear::Gear;
 use savaged_libs::player_character::hindrance::Hindrance;
 use savaged_libs::player_character::weapon::Weapon;
 use savaged_libs::utils::bool_from_int_or_bool;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use super::books::get_books;
 
@@ -24,7 +24,6 @@ pub fn get_game_data_package(
     access_admin: bool,
     all: bool,
 ) -> GameDataPackage {
-
     let mut book_ids: Vec<u32> = Vec::new();
 
     let books = get_books(
@@ -39,42 +38,17 @@ pub fn get_game_data_package(
     );
 
     for book in &books {
-        book_ids.push( book.id );
+        book_ids.push(book.id);
     }
 
-    let hindrances = get_hindrances(
-        &pool,
-        updated_on,
-        &book_ids,
-        all
-    );
+    let hindrances = get_hindrances(&pool, updated_on, &book_ids, all);
 
-    let edges = get_edges(
-        &pool,
-        updated_on,
-        &book_ids,
-        all
-    );
+    let edges = get_edges(&pool, updated_on, &book_ids, all);
 
-    let gear = get_gear(
-        &pool,
-        updated_on,
-        &book_ids,
-        all
-    );
+    let gear = get_gear(&pool, updated_on, &book_ids, all);
 
-    let armor = get_armor(
-        &pool,
-        updated_on,
-        &book_ids,
-        all
-    );
-    let weapons = get_weapons(
-        &pool,
-        updated_on,
-        &book_ids,
-        all
-    );
+    let armor = get_armor(&pool, updated_on, &book_ids, all);
+    let weapons = get_weapons(&pool, updated_on, &book_ids, all);
 
     let mut data_level: GameDataPackageLevel = GameDataPackageLevel::Anonymous;
 
@@ -90,7 +64,7 @@ pub fn get_game_data_package(
         data_level = GameDataPackageLevel::Anonymous;
     }
 
-    return GameDataPackage{
+    return GameDataPackage {
         data_level: data_level,
         books: books,
 
@@ -111,7 +85,6 @@ pub fn get_game_data_table_data(
     book_ids: &Vec<u32>,
     all: bool,
 ) -> Vec<RowData> {
-
     let mut data_query = format!(
         "SELECT
         id,
@@ -133,7 +106,6 @@ pub fn get_game_data_table_data(
         and version_of < 1
 
         ",
-
         table_name
     );
 
@@ -151,39 +123,30 @@ pub fn get_game_data_table_data(
     // let data_params = params!{ "user_id" => user_id};
     // let data_params = params!{ "1" => "1"};
     match pool.get_conn() {
-        Ok( mut conn) => {
-            let get_row_data_result = conn
-            .query_map(
+        Ok(mut conn) => {
+            let get_row_data_result = conn.query_map(
                 data_query,
                 |(
                     id,
                     data,
-
                     created_on,
                     created_by,
-
                     updated_on,
                     updated_by,
-
                     deleted,
                     deleted_on,
-                    deleted_by
-
+                    deleted_by,
                 ): (
                     u32,
                     Option<String>,
-
                     String,
-                    u32,
-
-                    String,
-                    u32,
-
                     u32,
                     String,
                     u32,
-                ) | {
-
+                    u32,
+                    String,
+                    u32,
+                )| {
                     let mut deleted_bool = false;
                     if deleted > 0 {
                         deleted_bool = true;
@@ -203,22 +166,20 @@ pub fn get_game_data_table_data(
                         deleted_on: mysql_datetime_to_chrono_utc(deleted_on),
                         deleted_by: deleted_by,
                     };
-
                 },
             );
             match get_row_data_result {
-                Ok( get_row_data ) => {
+                Ok(get_row_data) => {
                     return get_row_data;
                 }
 
-                Err( err ) => {
-                    println!("get_game_data_table_data Error 4 {}", err );
+                Err(err) => {
+                    println!("get_game_data_table_data Error 4 {}", err);
                 }
             }
-
         }
-        Err( err ) => {
-            println!("get_game_data_table_data Error 3 {}", err );
+        Err(err) => {
+            println!("get_game_data_table_data Error 3 {}", err);
         }
     }
     return Vec::new();
@@ -261,11 +222,11 @@ pub fn get_hindrances(
     let mut parsed_data: Vec<Hindrance> = Vec::new();
     for row in rows {
         match row.data {
-
             Some(row_data) => {
-                let data_result: Result<Hindrance, serde_json::Error>  = serde_json::from_str( row_data.as_ref() );
+                let data_result: Result<Hindrance, serde_json::Error> =
+                    serde_json::from_str(row_data.as_ref());
                 match data_result {
-                    Ok( mut data ) => {
+                    Ok(mut data) => {
                         data.id = row.id;
                         data.created_on = row.created_on;
                         data.updated_on = row.updated_on;
@@ -277,19 +238,20 @@ pub fn get_hindrances(
                         data.updated_by = row.updated_by;
                         data.deleted_by = row.deleted_by;
 
-                        parsed_data.push( data );
+                        parsed_data.push(data);
                     }
-                    Err( err ) => {
-                        println!("Error with data on get_hindrances {}, {}, {}", row.id, err.to_string(), row_data);
+                    Err(err) => {
+                        println!(
+                            "Error with data on get_hindrances {}, {}, {}",
+                            row.id,
+                            err.to_string(),
+                            row_data
+                        );
                     }
-
                 }
             }
-            None => {
-
-            }
+            None => {}
         }
-
     }
     return parsed_data;
 }
@@ -300,22 +262,17 @@ pub fn get_edges(
     book_ids: &Vec<u32>,
     all: bool,
 ) -> Vec<Edge> {
-    let rows = get_game_data_table_data(
-        pool,
-        "chargen_edges".to_owned(),
-        updated_on,
-        book_ids,
-        all,
-    );
+    let rows =
+        get_game_data_table_data(pool, "chargen_edges".to_owned(), updated_on, book_ids, all);
 
     let mut parsed_data: Vec<Edge> = Vec::new();
     for row in rows {
         match row.data {
-
             Some(row_data) => {
-                let data_result: Result<Edge, serde_json::Error>  = serde_json::from_str( row_data.as_ref() );
+                let data_result: Result<Edge, serde_json::Error> =
+                    serde_json::from_str(row_data.as_ref());
                 match data_result {
-                    Ok( mut data ) => {
+                    Ok(mut data) => {
                         data.id = row.id;
                         data.created_on = row.created_on;
                         data.updated_on = row.updated_on;
@@ -327,18 +284,20 @@ pub fn get_edges(
                         data.updated_by = row.updated_by;
                         data.deleted_by = row.deleted_by;
 
-                        parsed_data.push( data );
+                        parsed_data.push(data);
                     }
-                    Err( err ) => {
-                        println!("Error with data on get_edges {}, {}, {}", row.id, err.to_string(), row_data);
+                    Err(err) => {
+                        println!(
+                            "Error with data on get_edges {}, {}, {}",
+                            row.id,
+                            err.to_string(),
+                            row_data
+                        );
                     }
                 }
             }
-            None => {
-
-            }
+            None => {}
         }
-
     }
     return parsed_data;
 }
@@ -360,11 +319,11 @@ pub fn get_weapons(
     let mut parsed_data: Vec<Weapon> = Vec::new();
     for row in rows {
         match row.data {
-
             Some(row_data) => {
-                let data_result: Result<Weapon, serde_json::Error>  = serde_json::from_str( row_data.as_ref() );
+                let data_result: Result<Weapon, serde_json::Error> =
+                    serde_json::from_str(row_data.as_ref());
                 match data_result {
-                    Ok( mut data ) => {
+                    Ok(mut data) => {
                         data.id = row.id;
                         data.created_on = row.created_on;
                         data.updated_on = row.updated_on;
@@ -376,18 +335,20 @@ pub fn get_weapons(
                         data.updated_by = row.updated_by;
                         data.deleted_by = row.deleted_by;
 
-                        parsed_data.push( data );
+                        parsed_data.push(data);
                     }
-                    Err( err ) => {
-                        println!("Error with data on get_weapons {}, {}, {}", row.id, err.to_string(), row_data);
+                    Err(err) => {
+                        println!(
+                            "Error with data on get_weapons {}, {}, {}",
+                            row.id,
+                            err.to_string(),
+                            row_data
+                        );
                     }
                 }
             }
-            None => {
-
-            }
+            None => {}
         }
-
     }
     return parsed_data;
 }
@@ -398,22 +359,16 @@ pub fn get_gear(
     book_ids: &Vec<u32>,
     all: bool,
 ) -> Vec<Gear> {
-    let rows = get_game_data_table_data(
-        pool,
-        "chargen_gear".to_owned(),
-        updated_on,
-        book_ids,
-        all,
-    );
+    let rows = get_game_data_table_data(pool, "chargen_gear".to_owned(), updated_on, book_ids, all);
 
     let mut parsed_data: Vec<Gear> = Vec::new();
     for row in rows {
         match row.data {
-
             Some(row_data) => {
-                let data_result: Result<Gear, serde_json::Error>  = serde_json::from_str( row_data.as_ref() );
+                let data_result: Result<Gear, serde_json::Error> =
+                    serde_json::from_str(row_data.as_ref());
                 match data_result {
-                    Ok( mut data ) => {
+                    Ok(mut data) => {
                         data.id = row.id;
                         data.created_on = row.created_on;
                         data.updated_on = row.updated_on;
@@ -425,18 +380,20 @@ pub fn get_gear(
                         data.updated_by = row.updated_by;
                         data.deleted_by = row.deleted_by;
 
-                        parsed_data.push( data );
+                        parsed_data.push(data);
                     }
-                    Err( err ) => {
-                        println!("Error with data on get_gear {}, {}, {}", row.id, err.to_string(), row_data);
+                    Err(err) => {
+                        println!(
+                            "Error with data on get_gear {}, {}, {}",
+                            row.id,
+                            err.to_string(),
+                            row_data
+                        );
                     }
                 }
             }
-            None => {
-
-            }
+            None => {}
         }
-
     }
     return parsed_data;
 }
@@ -447,22 +404,17 @@ pub fn get_armor(
     book_ids: &Vec<u32>,
     all: bool,
 ) -> Vec<Armor> {
-    let rows = get_game_data_table_data(
-        pool,
-        "chargen_armor".to_owned(),
-        updated_on,
-        book_ids,
-        all,
-    );
+    let rows =
+        get_game_data_table_data(pool, "chargen_armor".to_owned(), updated_on, book_ids, all);
 
     let mut parsed_data: Vec<Armor> = Vec::new();
     for row in rows {
         match row.data {
-
             Some(row_data) => {
-                let data_result: Result<Armor, serde_json::Error>  = serde_json::from_str( row_data.as_ref() );
+                let data_result: Result<Armor, serde_json::Error> =
+                    serde_json::from_str(row_data.as_ref());
                 match data_result {
-                    Ok( mut data ) => {
+                    Ok(mut data) => {
                         data.id = row.id;
                         data.created_on = row.created_on;
                         data.updated_on = row.updated_on;
@@ -474,18 +426,20 @@ pub fn get_armor(
                         data.updated_by = row.updated_by;
                         data.deleted_by = row.deleted_by;
 
-                        parsed_data.push( data );
+                        parsed_data.push(data);
                     }
-                    Err( err ) => {
-                        println!("Error with data on get_armor {}, {}, {}", row.id, err.to_string(), row_data);
+                    Err(err) => {
+                        println!(
+                            "Error with data on get_armor {}, {}, {}",
+                            row.id,
+                            err.to_string(),
+                            row_data
+                        );
                     }
                 }
             }
-            None => {
-
-            }
+            None => {}
         }
-
     }
     return parsed_data;
 }

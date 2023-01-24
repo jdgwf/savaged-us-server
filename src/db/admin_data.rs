@@ -1,17 +1,16 @@
-
-use actix_web::web::Data;
-use actix_web::web::Json;
-use crate::db::utils::{mysql_row_to_chrono_utc, admin_filter_where_clause};
-use mysql::*;
-use mysql::prelude::*;
-use savaged_libs::admin_libs::{FetchAdminParameters, AdminPagingStatistics};
-use savaged_libs::game_data_row::GameDataRow;
-use savaged_libs::public_user_info::PublicUserInfo;
 use super::books::get_books;
 use super::users::make_user_from_row;
 use super::utils::admin_current_limit_paging_sql;
+use crate::db::utils::{admin_filter_where_clause, mysql_row_to_chrono_utc};
+use actix_web::web::Data;
+use actix_web::web::Json;
+use mysql::prelude::*;
+use mysql::*;
+use savaged_libs::admin_libs::{AdminPagingStatistics, FetchAdminParameters};
+use savaged_libs::game_data_row::GameDataRow;
+use savaged_libs::public_user_info::PublicUserInfo;
 
-const DATA_SEARCH_FIELDS: &'static [&'static str]  = &[
+const DATA_SEARCH_FIELDS: &'static [&'static str] = &[
     "primary`.`name",
     // "summary",
 ];
@@ -22,39 +21,43 @@ pub fn db_admin_delete_game_data(
     user_id: u32,
     row_id: u32,
 ) -> u32 {
-
     match pool.get_conn() {
-        Ok( mut conn) => {
-            let delete_result: Option<Row>  = conn.exec_first(
-                format!("update `chargen_{}`
+        Ok(mut conn) => {
+            let delete_result: Option<Row> = conn
+                .exec_first(
+                    format!(
+                        "update `chargen_{}`
                     set `deleted` = 1,
                     `deleted_by` = :user_id,
                     `deleted_on` =  now()
                     where `id` = :row_id
 
                     limit 1
-                ", table),
-                params!{
-                    "user_id" => user_id,
-                    "row_id" => row_id,
-                    // "table" => table,
-                }
-            ).unwrap();
+                ",
+                        table
+                    ),
+                    params! {
+                        "user_id" => user_id,
+                        "row_id" => row_id,
+                        // "table" => table,
+                    },
+                )
+                .unwrap();
             match delete_result {
-                Some(_ ) => {
+                Some(_) => {
                     // return Json( get_notifications_for_user( pool.clone(), user.id ) );
                     return 1;
                 }
 
                 None => {
-                    println!("db_admin_delete_game_data no result?" );
+                    println!("db_admin_delete_game_data no result?");
                     // return Json( get_notifications_for_user( pool.clone(), user.id ) );
                     return 0;
                 }
             }
         }
-        Err( err ) => {
-            println!("db_admin_update_game_data Error 3 {}", err );
+        Err(err) => {
+            println!("db_admin_update_game_data Error 3 {}", err);
             return 0;
         }
     }
@@ -67,40 +70,44 @@ pub fn db_admin_update_game_data(
     row_id: u32,
     data: String,
 ) -> u32 {
-
     match pool.get_conn() {
-        Ok( mut conn) => {
-            let notifications_result: Option<Row>  = conn.exec_first(
-                format!("update `chargen_{}`
+        Ok(mut conn) => {
+            let notifications_result: Option<Row> = conn
+                .exec_first(
+                    format!(
+                        "update `chargen_{}`
                     set `data` = :data,
                     `updated_by` = :user_id,
                     `updated_on` =  now()
                     where `id` = :row_id
 
                     limit 1
-                ", table),
-                params!{
-                    "user_id" => user_id,
-                    "row_id" => row_id,
-                    "data" => data,
-                    // "table" => table,
-                }
-            ).unwrap();
+                ",
+                        table
+                    ),
+                    params! {
+                        "user_id" => user_id,
+                        "row_id" => row_id,
+                        "data" => data,
+                        // "table" => table,
+                    },
+                )
+                .unwrap();
             match notifications_result {
-                Some(_ ) => {
+                Some(_) => {
                     // return Json( get_notifications_for_user( pool.clone(), user.id ) );
                     return 1;
                 }
 
                 None => {
-                    println!("db_admin_update_game_data no result?" );
+                    println!("db_admin_update_game_data no result?");
                     // return Json( get_notifications_for_user( pool.clone(), user.id ) );
                     return 0;
                 }
             }
         }
-        Err( err ) => {
-            println!("db_admin_update_game_data Error 3 {}", err );
+        Err(err) => {
+            println!("db_admin_update_game_data Error 3 {}", err);
             return 0;
         }
     }
@@ -112,11 +119,12 @@ pub fn db_admin_insert_game_data(
     user_id: u32,
     data: String,
 ) -> u32 {
-
     match pool.get_conn() {
-        Ok( mut conn) => {
-            let insert_result: Option<Row>  = conn.exec_first(
-                format!("insert into `chargen_{}` (
+        Ok(mut conn) => {
+            let insert_result: Option<Row> = conn
+                .exec_first(
+                    format!(
+                        "insert into `chargen_{}` (
                     `data`,
                     `deleted_by`,
                     `updated_by`,
@@ -135,28 +143,31 @@ pub fn db_admin_insert_game_data(
                     now()
                 )
 
-                ", table),
-                params!{
-                    "user_id" => user_id,
-                    "data" => data,
-                    // "table" => table,
-                }
-            ).unwrap();
+                ",
+                        table
+                    ),
+                    params! {
+                        "user_id" => user_id,
+                        "data" => data,
+                        // "table" => table,
+                    },
+                )
+                .unwrap();
             match insert_result {
-                Some(_ ) => {
+                Some(_) => {
                     // return Json( get_notifications_for_user( pool.clone(), user.id ) );
                     return 1;
                 }
 
                 None => {
-                    println!("db_admin_insert_game_data no result?" );
+                    println!("db_admin_insert_game_data no result?");
                     // return Json( get_notifications_for_user( pool.clone(), user.id ) );
                     return 0;
                 }
             }
         }
-        Err( err ) => {
-            println!("db_admin_update_game_data Error 3 {}", err );
+        Err(err) => {
+            println!("db_admin_update_game_data Error 3 {}", err);
             return 0;
         }
     }
@@ -167,78 +178,70 @@ pub fn db_admin_get_game_data_paging_data(
     table: String,
     paging_params: Json<FetchAdminParameters>,
 ) -> AdminPagingStatistics {
-
     let mut paging: AdminPagingStatistics = AdminPagingStatistics {
         non_filtered_count: 0,
         filtered_count: 0,
         book_list: None,
     };
 
-    let data_query = format!("
+    let data_query = format!(
+        "
         SELECT count(id) as `count` from `chargen_{}`
         WHERE `deleted` < 1 and `version_of` = 0
-    ", &table);
+    ",
+        &table
+    );
 
     match pool.get_conn() {
-        Ok( mut conn) => {
-
+        Ok(mut conn) => {
             let saves_result: Result<Option<u32>> = conn.exec_first(
                 data_query,
                 // data_params,
                 (),
             );
             match saves_result {
-                Ok(  row_opt ) => {
-
-                    match row_opt {
-                        Some( row ) => {
-                            paging.non_filtered_count = row;
-                        }
-                        None => {},
+                Ok(row_opt) => match row_opt {
+                    Some(row) => {
+                        paging.non_filtered_count = row;
                     }
-
+                    None => {}
+                },
+                Err(err) => {
+                    println!("get_item_saves Error 4 {}", err);
                 }
-                Err( err ) => {
-                    println!("get_item_saves Error 4 {}", err );
-                }
-
             }
-
         }
-        Err( _err ) => {
+        Err(_err) => {
             // println!("get_item_saves Error 3 {}", err );
         }
     }
-    let mut data_query = format!("
+    let mut data_query = format!(
+        "
         SELECT count(id) as `count` from `chargen_{}`
         WHERE `deleted` < 1 and `version_of` = 0
-    ", &table);
+    ",
+        &table
+    );
 
-    data_query = data_query + admin_filter_where_clause(
-        DATA_SEARCH_FIELDS,
-        &paging_params,
-        true,
-        true,
-    ).as_str();
-//
+    data_query = data_query
+        + admin_filter_where_clause(DATA_SEARCH_FIELDS, &paging_params, true, true).as_str();
+    //
     // println!("admin_get_game_data_paging_data 2 data_query:\n{}", data_query);
 
     match pool.get_conn() {
-        Ok( mut conn) => {
-
+        Ok(mut conn) => {
             let saves_result: Result<Option<u32>> = conn.exec_first(
                 data_query,
                 // data_params,
                 (),
             );
             match saves_result {
-                Ok(  row_opt ) => {
-
+                Ok(row_opt) => {
                     match row_opt {
-                        Some( row ) => {
+                        Some(row) => {
                             paging.filtered_count = row;
                         }
-                        None => {},
+                        None => {}
                     }
 
                     // let mut rv: Vec<User> = Vec::new();
@@ -256,19 +259,17 @@ pub fn db_admin_get_game_data_paging_data(
                     // paging
 
                     if paging_params.needs_book_list {
-                        paging.book_list = Some(get_books(&pool, 0, None, false, false, false, false, true));
+                        paging.book_list =
+                            Some(get_books(&pool, 0, None, false, false, false, false, true));
                     }
-
                 }
-                Err( err ) => {
-                    println!("get_item_saves Error 4 {}", err );
+                Err(err) => {
+                    println!("get_item_saves Error 4 {}", err);
                     // return Vec::new();
                 }
-
             }
-
         }
-        Err( _err ) => {
+        Err(_err) => {
             // println!("get_item_saves Error 3 {}", err );
         }
     }
@@ -281,8 +282,8 @@ pub fn db_admin_get_game_data(
     table: String,
     paging_params: Json<FetchAdminParameters>,
 ) -> Vec<GameDataRow> {
-
-    let mut data_query = format!("
+    let mut data_query = format!(
+        "
         SELECT
         `primary`.`name` as `primary_name`,
         `primary`.`book_id` as `primary_book_id`,
@@ -466,27 +467,24 @@ pub fn db_admin_get_game_data(
         left join `books` `book` on `primary`.book_id = `book`.id
         WHERE `primary`.`deleted` < 1 and `primary`.`version_of` = 0
 
-    ", &table);
+    ",
+        &table
+    );
 
-    let paging = admin_current_limit_paging_sql( &paging_params );
+    let paging = admin_current_limit_paging_sql(&paging_params);
     // let data_params = params!{
     //      "1" => 1
     // };
 
-    data_query = data_query + admin_filter_where_clause(
-        DATA_SEARCH_FIELDS,
-        &paging_params,
-        false,
-        true,
-    ).as_str();
+    data_query = data_query
+        + admin_filter_where_clause(DATA_SEARCH_FIELDS, &paging_params, false, true).as_str();
 
     data_query = data_query + &"\norder by `book`.`name` ASC, `primary`.`name` ASC\n" + &paging;
 
     // println!("admin_get_game_data data_query:\n{}", data_query);
 
     match pool.get_conn() {
-        Ok( mut conn) => {
-
+        Ok(mut conn) => {
             let saves_result: Result<Vec<Row>> = conn.exec(
                 data_query,
                 // data_params,
@@ -494,8 +492,7 @@ pub fn db_admin_get_game_data(
             );
 
             match saves_result {
-                Ok(  rows ) => {
-
+                Ok(rows) => {
                     let mut rv: Vec<GameDataRow> = Vec::new();
                     for row in rows {
                         // let row_data = _make_save_from_row(row, with_cached_data);
@@ -508,34 +505,28 @@ pub fn db_admin_get_game_data(
                         //     println!("cols {:?}", col.name_str() );
                         // }
                         // let mut item = _make_game_data_struct( row );
-                        rv.push( _make_game_data_struct( row ) );
+                        rv.push(_make_game_data_struct(row));
                     }
 
                     // println!("rv.len {}", rv.len() );
                     return rv;
                 }
-                Err( err ) => {
-                    println!("get_item_saves Error 4 {}", err );
+                Err(err) => {
+                    println!("get_item_saves Error 4 {}", err);
                     return Vec::new();
                 }
-
             }
-
         }
-        Err( err ) => {
-            println!("get_item_saves Error 3 {}", err );
+        Err(err) => {
+            println!("get_item_saves Error 3 {}", err);
         }
     }
     return Vec::new();
 }
 
-pub fn db_admin_admin_get_item(
-    pool: Data<Pool>,
-    table: String,
-    id: u32,
-) -> Option<GameDataRow> {
-
-    let data_query = format!("
+pub fn db_admin_admin_get_item(pool: Data<Pool>, table: String, id: u32) -> Option<GameDataRow> {
+    let data_query = format!(
+        "
         SELECT
         `primary`.`name` as `primary_name`,
         `primary`.`book_id` as `primary_book_id`,
@@ -720,10 +711,12 @@ pub fn db_admin_admin_get_item(
         WHERE `primary`.`deleted` < 1 and `primary`.`version_of` = 0 and `primary`.`id` = :id
         limit 1
 
-    ", &table);
+    ",
+        &table
+    );
 
     // let paging = admin_current_limit_paging_sql( &paging_params );
-    let data_params = params!{
+    let data_params = params! {
          "id" => id
     };
 
@@ -739,17 +732,11 @@ pub fn db_admin_admin_get_item(
     // println!("admin_get_game_data data_query:\n{}", data_query);
 
     match pool.get_conn() {
-        Ok( mut conn) => {
-
-            let saves_result: Result<Vec<Row>> = conn.exec(
-                data_query,
-                data_params,
-
-            );
+        Ok(mut conn) => {
+            let saves_result: Result<Vec<Row>> = conn.exec(data_query, data_params);
 
             match saves_result {
-                Ok(  rows ) => {
-
+                Ok(rows) => {
                     for row in rows {
                         // let row_data = _make_save_from_row(row, with_cached_data);
 
@@ -761,35 +748,31 @@ pub fn db_admin_admin_get_item(
                         //     println!("cols {:?}", col.name_str() );
                         // }
                         // let mut item = _make_game_data_struct( row );
-                        return Some( _make_game_data_struct( row ) );
+                        return Some(_make_game_data_struct(row));
                     }
 
                     // println!("rv.len {}", rv.len() );
                     return None;
                 }
-                Err( err ) => {
-                    println!("get_item_saves Error 4 {}", err );
+                Err(err) => {
+                    println!("get_item_saves Error 4 {}", err);
                     return None;
                 }
-
             }
-
         }
-        Err( err ) => {
-            println!("get_item_saves Error 3 {}", err );
+        Err(err) => {
+            println!("get_item_saves Error 3 {}", err);
         }
     }
     return None;
 }
 
-fn _make_game_data_struct( mut row: Row ) -> GameDataRow {
-
+fn _make_game_data_struct(mut row: Row) -> GameDataRow {
     let mut created_by = 0;
     let mut created_by_user: Option<PublicUserInfo> = None;
-    let created_opt= row.take_opt("primary_created_by").unwrap();
+    let created_opt = row.take_opt("primary_created_by").unwrap();
     match created_opt {
-
-        Ok( val ) => {
+        Ok(val) => {
             // println!("created_by val {:?}", val );
             created_by = val;
             if val > 0 {
@@ -797,15 +780,13 @@ fn _make_game_data_struct( mut row: Row ) -> GameDataRow {
                 created_by_user = Some(user.get_public_info(true));
             }
         }
-        Err( _ ) => {}
-
+        Err(_) => {}
     }
     let mut updated_by = 0;
     let mut updated_by_user: Option<PublicUserInfo> = None;
     let updated_opt = row.take_opt("primary_updated_by").unwrap();
     match updated_opt {
-
-        Ok( val ) => {
+        Ok(val) => {
             // println!("updated_by val {:?}", val );
             updated_by = val;
             if val > 0 {
@@ -813,56 +794,53 @@ fn _make_game_data_struct( mut row: Row ) -> GameDataRow {
                 updated_by_user = Some(user.get_public_info(true));
             }
         }
-        Err( err ) => {
-            println!("updated_by error {:?}", err );
+        Err(err) => {
+            println!("updated_by error {:?}", err);
         }
-
     }
     let mut deleted_by = 0;
     let mut deleted_by_user: Option<PublicUserInfo> = None;
     let deleted_opt = row.take_opt("primary_deleted_by").unwrap();
     match deleted_opt {
-
-        Ok( val ) => {
+        Ok(val) => {
             deleted_by = val;
             if val > 0 {
                 let user = make_user_from_row(row.clone(), "deleted_by_user_".to_owned());
                 deleted_by_user = Some(user.get_public_info(true));
             }
         }
-        Err( _ ) => {}
-
+        Err(_) => {}
     }
 
-    let mut data= "".to_string();
+    let mut data = "".to_string();
     let data_opt = row.take_opt("primary_data").unwrap();
     match data_opt {
-
-        Ok( val ) => {data = val; }
-        Err( _ ) => {}
-
+        Ok(val) => {
+            data = val;
+        }
+        Err(_) => {}
     }
 
-    let mut book_name:Option<String> = None;
+    let mut book_name: Option<String> = None;
     let book_name_opt = row.take_opt("book_name").unwrap();
     match book_name_opt {
-
-        Ok( val ) => {book_name = val;}
-        Err( _err ) => {
+        Ok(val) => {
+            book_name = val;
+        }
+        Err(_err) => {
             println!("game data book_name err {:?}", _err);
         }
-
     }
 
-    let mut book_short_name:Option<String> = None;
+    let mut book_short_name: Option<String> = None;
     let book_short_name_opt = row.take_opt("book_short_name").unwrap();
     match book_short_name_opt {
-
-        Ok( val ) => {book_short_name = val;}
-        Err( _err ) => {
+        Ok(val) => {
+            book_short_name = val;
+        }
+        Err(_err) => {
             println!("game data book_name err {:?}", _err);
         }
-
     }
 
     return GameDataRow {
@@ -876,10 +854,10 @@ fn _make_game_data_struct( mut row: Row ) -> GameDataRow {
 
         deleted: row.take("primary_deleted").unwrap(),
         deleted_by: deleted_by,
-        deleted_on: mysql_row_to_chrono_utc( &mut row, "primary_deleted_on"), // row.take("deleted_on").unwrap(),
+        deleted_on: mysql_row_to_chrono_utc(&mut row, "primary_deleted_on"), // row.take("deleted_on").unwrap(),
 
         updated_by: updated_by,
-        updated_on: mysql_row_to_chrono_utc( &mut row, "primary_updated_on"), // updated_on_dtfo.with_timezone( &Utc),
+        updated_on: mysql_row_to_chrono_utc(&mut row, "primary_updated_on"), // updated_on_dtfo.with_timezone( &Utc),
         version_of: row.take("primary_version_of").unwrap(),
 
         book_id: row.take("primary_book_id").unwrap(),
@@ -891,6 +869,5 @@ fn _make_game_data_struct( mut row: Row ) -> GameDataRow {
         created_by_user: created_by_user,
         deleted_by_user: deleted_by_user,
         updated_by_user: updated_by_user,
-
     };
 }

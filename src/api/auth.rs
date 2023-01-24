@@ -11,35 +11,31 @@ use std::path;
 // use chrono_tz::US::Central;
 // use actix_multipart::Multipart;
 // use chrono_tz::Tz;
-use actix_web:: {
+use crate::db::saves::get_user_saves;
+use crate::utils::encrypt_password;
+use actix_web::HttpRequest;
+use actix_web::{
     // get,
     post,
+    web::Data,
+    // web::Form,
+    // HttpResponse,
+    // http::{header::ContentType, StatusCode }
     // put,
     // error::ResponseError,
     // web::Path,
     // web,
     web::Json,
-    web::Data,
-    // web::Form,
-    // HttpResponse,
-    // http::{header::ContentType, StatusCode }
 };
-use actix_web::HttpRequest;
-use crate::db::saves::get_user_saves;
-use crate::utils::encrypt_password;
 
 use super::super::db::users::{
-    log_user_in,
-    get_user,
-    create_login_token,
-    get_remote_user,
-    update_user_login_tokens,
+    create_login_token, get_remote_user, get_user, log_user_in, update_user_login_tokens,
 };
 
 // use sha2::{Sha256, Sha512, Sha224, Digest};
 // use serde_json::Error;
-use serde::{Serialize, Deserialize};
-use savaged_libs::user::{ LoginTokenResult, User, LoginToken, UserUpdateResult };
+use savaged_libs::user::{LoginToken, LoginTokenResult, User, UserUpdateResult};
+use serde::{Deserialize, Serialize};
 // use base64;
 // use derive_more::{Display};
 
@@ -89,7 +85,6 @@ pub async fn api_auth_login_for_token(
     form: Json<LoginForm>,
     request: HttpRequest,
 ) -> Json<LoginTokenResult> {
-
     let conn_info = request.connection_info();
 
     let mut real_remote_addy = "".to_string();
@@ -98,32 +93,26 @@ pub async fn api_auth_login_for_token(
 
     let real_remote_addy_option = conn_info.realip_remote_addr();
     match real_remote_addy_option {
-        Some( val ) => {
+        Some(val) => {
             real_remote_addy = val.to_string();
         }
-        None => {
-
-        }
+        None => {}
     }
 
     let user_agent_option = request.headers().get("user-agent");
     match user_agent_option {
-        Some( val ) => {
+        Some(val) => {
             user_agent = format!("{:?}", val).to_string().replace("\"", "");
         }
-        None => {
-
-        }
+        None => {}
     }
 
     let x_forwarded_for_option = request.headers().get("x-forwarded-for");
     match x_forwarded_for_option {
-        Some( val ) => {
+        Some(val) => {
             x_forwarded_for = format!("{:?}", val).to_string().replace("\"", "");
         }
-        None => {
-
-        }
+        None => {}
     }
 
     // println!("real_remote_addy {}", real_remote_addy);
@@ -137,14 +126,18 @@ pub async fn api_auth_login_for_token(
     let mut rv = LoginTokenResult {
         success: false,
         active_notifications: 0,
-        user : User::default(),
+        user: User::default(),
         user_groups: Vec::new(),
         login_token: "".to_owned(),
         last_seen: None,
         registered: None,
     };
 
-    let login_results = log_user_in( pool.clone(), form.email.to_owned(), form.password.to_owned() );
+    let login_results = log_user_in(
+        pool.clone(),
+        form.email.to_owned(),
+        form.password.to_owned(),
+    );
 
     if login_results.user_id > 0 {
         let new_login_token = create_login_token(
@@ -152,24 +145,22 @@ pub async fn api_auth_login_for_token(
             login_results.user_id,
             user_agent.to_owned(),
             real_remote_addy.to_owned(),
-        ).unwrap();
-        let user_result = get_user( pool.clone(), login_results.user_id);
+        )
+        .unwrap();
+        let user_result = get_user(pool.clone(), login_results.user_id);
         match user_result {
-            Some( user ) => {
+            Some(user) => {
                 rv.success = true;
                 rv.login_token = new_login_token;
                 rv.user = user.clone();
                 rv.user.get_image("");
                 rv.registered = user.created_on.clone();
             }
-            None => {
-
-            }
+            None => {}
         }
-
     }
 
-    return Json( rv );
+    return Json(rv);
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -185,27 +176,20 @@ pub async fn api_auth_get_user_data(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
     request: HttpRequest,
-) -> Json< Option<User> > {
-
+) -> Json<Option<User>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
     match &form.login_token {
-        Some( val ) => {
+        Some(val) => {
             login_token = Some(val.to_owned());
         }
         None => {}
     }
     match &form.api_key {
-        Some( val ) => {
+        Some(val) => {
             api_key = Some(val.to_owned());
         }
         None => {}
     }
-    return Json( get_remote_user(
-        pool.clone(),
-        api_key,
-        login_token,
-        request,
-    ) );
-
+    return Json(get_remote_user(pool.clone(), api_key, login_token, request));
 }
