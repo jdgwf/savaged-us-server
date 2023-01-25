@@ -1,5 +1,6 @@
-use crate::web_sockets::messages::{ClientActorMessage, Connect, Disconnect, WsMessage};
+use crate::web_sockets::{messages::{ClientActorMessage, Connect, Disconnect, WsMessage}, handle_message::handle_message};
 use actix::prelude::{Actor, Context, Handler, Recipient};
+use savaged_libs::websocket_message::WebSocketMessage;
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
@@ -7,8 +8,8 @@ use uuid::Uuid;
 
 #[derive(Clone)]
 pub struct Lobby {
-    sessions: HashMap<Uuid, Recipient<WsMessage>>, //self id to self
-    rooms: HashMap<Uuid, HashSet<Uuid>>,           //room id  to list of users id
+    pub sessions: HashMap<Uuid, Recipient<WsMessage>>, //self id to self
+    pub rooms: HashMap<Uuid, HashSet<Uuid>>,           //room id  to list of users id
 }
 
 impl Default for Lobby {
@@ -106,6 +107,12 @@ impl Handler<ClientActorMessage> for Lobby {
     type Result = ();
 
     fn handle(&mut self, msg: ClientActorMessage, _: &mut Context<Self>) -> Self::Result {
+        println!(
+            "Handler<ClientActorMessage> {:?} {:?} {:?}",
+            msg.id, msg.room_id, msg.msg
+        );
+
+
         if msg.msg.starts_with("\\w") {
             if let Some(id_to) = msg.msg.split(' ').collect::<Vec<&str>>().get(1) {
                 self.send_message(&msg.msg, &Uuid::parse_str(id_to).unwrap());
@@ -122,5 +129,11 @@ impl Handler<ClientActorMessage> for Lobby {
                 None => {}
             }
         }
+    }
+}
+
+impl Lobby {
+    pub fn get_sessions() -> Vec<Recipient<WsMessage>> {
+        return Vec::new();
     }
 }

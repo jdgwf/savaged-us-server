@@ -1,4 +1,4 @@
-use super::ServerWebsocket;
+use super::{ServerWebsocket, messages::ClientActorMessage};
 use crate::{
     db::{
         game_data::get_game_data_package,
@@ -25,8 +25,8 @@ pub fn handle_message(
         WebsocketMessageType::Saves => {
             // println!("handle_message Saves {:?}", msg);
 
-            let mut message_to_be_send = WebSocketMessage::default();
-            message_to_be_send.kind = WebsocketMessageType::Saves;
+            let mut msg_send = WebSocketMessage::default();
+            msg_send.kind = WebsocketMessageType::Saves;
             if msg.token != None {
                 let user_option =
                     get_user_from_login_token(ws.pool.clone(), msg.token, ws.req.clone());
@@ -39,19 +39,19 @@ pub fn handle_message(
                         //         println!("saves item {:?}", item);
                         //     }
                         // }
-                        message_to_be_send.saves = Some(saves);
+                        msg_send.saves = Some(saves);
                     }
                     None => {}
                 }
             }
 
-            send_message(message_to_be_send, ctx);
+            send_message(msg_send, ctx);
         }
         WebsocketMessageType::GameDataPackage => {
             // println!("handle_message GameDataPackage {:?}", msg);
 
-            let mut message_to_be_send = WebSocketMessage::default();
-            message_to_be_send.kind = WebsocketMessageType::GameDataPackage;
+            let mut msg_send = WebSocketMessage::default();
+            msg_send.kind = WebsocketMessageType::GameDataPackage;
             if msg.token != None {
                 let user_option =
                     get_user_from_login_token(ws.pool.clone(), msg.token, ws.req.clone());
@@ -59,10 +59,10 @@ pub fn handle_message(
                     Some(user) => {
                         // ws.user = Some(user.get_public_info());
 
-                        // message_to_be_send.user = Some(user.clone());
+                        // msg_send.user = Some(user.clone());
                         // println!("** Online {:?}", ws.user);
 
-                        message_to_be_send.game_data = Some(get_game_data_package(
+                        msg_send.game_data = Some(get_game_data_package(
                             &ws.pool.clone(),
                             user.id,
                             msg.updated_on,
@@ -87,7 +87,7 @@ pub fn handle_message(
                         // );
                     }
                     None => {
-                        message_to_be_send.game_data = Some(get_game_data_package(
+                        msg_send.game_data = Some(get_game_data_package(
                             &ws.pool.clone(),
                             0,
                             msg.updated_on,
@@ -100,7 +100,7 @@ pub fn handle_message(
                     }
                 }
             } else {
-                message_to_be_send.game_data = Some(get_game_data_package(
+                msg_send.game_data = Some(get_game_data_package(
                     &ws.pool.clone(),
                     0,
                     msg.updated_on,
@@ -112,16 +112,16 @@ pub fn handle_message(
                 ));
             }
 
-            send_message(message_to_be_send, ctx);
+            send_message(msg_send, ctx);
         }
         WebsocketMessageType::Online => {
             // println!("handle_message Online {:?}", msg);
             // update_global_vars.emit( global_vars );
 
-            let mut message_to_be_send = WebSocketMessage::default();
+            let mut msg_send = WebSocketMessage::default();
 
-            message_to_be_send.kind = WebsocketMessageType::Online;
-            // send_message( message_to_be_send, ctx );
+            msg_send.kind = WebsocketMessageType::Online;
+            // send_message( msg_send, ctx );
 
             if msg.token != None {
                 let user_option =
@@ -130,7 +130,7 @@ pub fn handle_message(
                     Some(user) => {
                         ws.user = Some(user.clone());
 
-                        message_to_be_send.user = Some(user.clone());
+                        msg_send.user = Some(user.clone());
 
                         // let pool = ws.pool.clone();
                         // let user_id = user.id;
@@ -149,9 +149,61 @@ pub fn handle_message(
                 }
             }
 
-            send_message(message_to_be_send, ctx);
+            send_message(msg_send, ctx);
 
             // ctx.text(msg);
+        }
+
+        WebsocketMessageType::RequestUsers => {
+
+            match &ws.user {
+                Some( user ) => {
+                    if user.has_admin_access() {
+                        let mut msg_send = WebSocketMessage::default();
+
+                        msg_send.kind = WebsocketMessageType::Online;
+
+                        // ws.chat_server
+                        // let chat_server = ws.chat_server.tx;
+
+                        send_message(
+                            msg_send, ctx
+                        );
+                    }
+                }
+                None => {
+
+                }
+            }
+            // ws.location = msg.payload.clone();
+            // ws.chat_server.do_send(ClientActorMessage {
+            //     msg_type: WebsocketMessageType::SetLocation,
+            //     id: ws.id,
+            //     msg: msg.payload.unwrap(),
+            //     room_id: ws.room_id,
+            // });
+        }
+
+        WebsocketMessageType::SetLocation => {
+
+            ws.location = msg.payload.clone();
+            ws.chat_server.do_send(ClientActorMessage {
+                msg_type: WebsocketMessageType::SetLocation,
+                id: ws.id,
+                msg: msg.payload.unwrap(),
+                room_id: ws.room_id,
+            });
+        }
+
+        WebsocketMessageType::SetRoom => {
+
+            ws.location = msg.payload.clone();
+            ws.chat_server.do_send(ClientActorMessage {
+                msg_type: WebsocketMessageType::SetRoom,
+                id: ws.id,
+                msg: msg.payload.unwrap(),
+                room_id: ws.room_id,
+            });
         }
 
         WebsocketMessageType::Logout => {
@@ -160,9 +212,9 @@ pub fn handle_message(
             // update_global_vars.emit( global_vars );
 
             // ctx.text(msg);
-            // let mut message_to_be_send = WebSocketMessage::default();
-            // message_to_be_send.kind = WebsocketMessageType::Offline;
-            // send_message( message_to_be_send, ctx );
+            // let mut msg_send = WebSocketMessage::default();
+            // msg_send.kind = WebsocketMessageType::Offline;
+            // send_message( msg_send, ctx );
             // update_user_login_tokens(pool, user_id, login_tokens)
             match msg.token {
                 Some(msg_token) => {
@@ -187,7 +239,7 @@ pub fn handle_message(
                             update_user_login_tokens(ws.pool.clone(), user.id, login_tokens);
                             // ws.user = Some(user.get_public_info());
 
-                            // message_to_be_send.user = Some(user.clone());
+                            // msg_send.user = Some(user.clone());
 
                             // // let pool = ws.pool.clone();
                             // // let user_id = user.id;
@@ -222,9 +274,9 @@ pub fn handle_message(
             // update_global_vars.emit( global_vars );
 
             // ctx.text(msg);
-            let mut message_to_be_send = WebSocketMessage::default();
-            message_to_be_send.kind = WebsocketMessageType::Offline;
-            send_message(message_to_be_send, ctx);
+            let mut msg_send = WebSocketMessage::default();
+            msg_send.kind = WebsocketMessageType::Offline;
+            send_message(msg_send, ctx);
         }
 
         _ => {

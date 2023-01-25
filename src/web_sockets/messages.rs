@@ -1,4 +1,5 @@
 use actix::prelude::*;
+use savaged_libs::websocket_message::WebsocketMessageType;
 use uuid::Uuid;
 
 //WsConn responds to this to pipe it through to the actual client
@@ -27,6 +28,7 @@ pub struct Disconnect {
 #[derive(Message)]
 #[rtype(result = "()")]
 pub struct ClientActorMessage {
+    pub msg_type: WebsocketMessageType,
     pub id: Uuid,
     pub msg: String,
     pub room_id: Option<Uuid>,

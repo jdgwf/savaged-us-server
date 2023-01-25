@@ -4,7 +4,7 @@ mod messages;
 pub mod web_socket_router;
 
 use self::lobby::Lobby;
-use self::messages::{Connect, Disconnect, WsMessage};
+use self::messages::{Connect, Disconnect, WsMessage, ClientActorMessage};
 use actix::ActorContext;
 use actix::ActorFutureExt;
 use actix::WrapFuture;
@@ -36,6 +36,7 @@ pub struct ServerWebsocket {
     chat_server: Addr<Lobby>,
     req: HttpRequest,
     room_id: Option<Uuid>,
+    location: Option<String>,
 }
 
 impl Actor for ServerWebsocket {
@@ -110,6 +111,13 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
                     }
                 }
             }
+            // Ok(ws::Message::Text(sent_data)) => {
+            //     self.chat_server.do_send(ClientActorMessage {
+            //         id: self.id,
+            //         msg: sent_data.to_string(),
+            //         room_id: self.room_id
+            //     }
+            // )},
 
             Ok(ws::Message::Binary(bin)) => {
                 ctx.binary(bin);
@@ -178,6 +186,7 @@ impl ServerWebsocket {
             chat_server: chat_server,
             req: req.clone(),
             room_id: None,
+            location: None,
             remote_browser: user_agent.to_owned(),
             remote_ip: real_remote_addy.to_owned(),
         }
