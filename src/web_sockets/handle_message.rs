@@ -9,6 +9,7 @@ use crate::{
 };
 use actix_web_actors::ws;
 use chrono::prelude::*;
+use savaged_libs::clean_json_data;
 use log::Log;
 use savaged_libs::{
     user::LoginToken,
@@ -296,11 +297,7 @@ fn send_message(send_message: WebSocketMessage, ctx: &mut ws::WebsocketContext<S
 
     match send_data_result {
         Ok(mut send_data) => {
-            send_data = send_data.replace("\\\"pf_armor_type\\\": \\\"Armor\\\",", "");
-            send_data = send_data.replace("\"pf_armor_type\": \"Armor\",", "");
-            send_data = send_data.replace("\\\"pf_armor_type\\\":\\\"Armor\\\",", "");
-            send_data = send_data.replace("\"pf_armor_type\":\"Armor\",", "");
-
+            send_data = clean_json_data(send_data);
             ctx.text(send_data);
         }
         Err(err) => {
