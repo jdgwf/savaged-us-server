@@ -73,6 +73,7 @@ pub fn handle_message(
                             false,             // all
                         ));
 
+                        // println!("{:?}", msg.game_data );
                         // let pool = ws.pool.clone();
                         // let user_id = user.id;
                         // task::spawn_local(async move {
@@ -110,6 +111,8 @@ pub fn handle_message(
                     false, // access_admin,
                     false, // all
                 ));
+
+                // println!( "{}", serde_json::to_string(&msg_send).unwrap() );
             }
 
             send_message(msg_send, ctx);
@@ -292,7 +295,12 @@ fn send_message(send_message: WebSocketMessage, ctx: &mut ws::WebsocketContext<S
     let send_data_result = serde_json::to_string(&send_message);
 
     match send_data_result {
-        Ok(send_data) => {
+        Ok(mut send_data) => {
+            send_data = send_data.replace("\\\"pf_armor_type\\\": \\\"Armor\\\",", "");
+            send_data = send_data.replace("\"pf_armor_type\": \"Armor\",", "");
+            send_data = send_data.replace("\\\"pf_armor_type\\\":\\\"Armor\\\",", "");
+            send_data = send_data.replace("\"pf_armor_type\":\"Armor\",", "");
+
             ctx.text(send_data);
         }
         Err(err) => {

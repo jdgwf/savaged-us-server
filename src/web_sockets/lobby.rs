@@ -112,7 +112,6 @@ impl Handler<ClientActorMessage> for Lobby {
             msg.id, msg.room_id, msg.msg
         );
 
-
         if msg.msg.starts_with("\\w") {
             if let Some(id_to) = msg.msg.split(' ').collect::<Vec<&str>>().get(1) {
                 self.send_message(&msg.msg, &Uuid::parse_str(id_to).unwrap());
