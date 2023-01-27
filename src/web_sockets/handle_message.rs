@@ -9,7 +9,6 @@ use crate::{
 };
 use actix_web_actors::ws;
 use chrono::prelude::*;
-use savaged_libs::clean_json_data;
 use log::Log;
 use savaged_libs::{
     user::LoginToken,
@@ -296,8 +295,7 @@ fn send_message(send_message: WebSocketMessage, ctx: &mut ws::WebsocketContext<S
     let send_data_result = serde_json::to_string(&send_message);
 
     match send_data_result {
-        Ok(mut send_data) => {
-            send_data = clean_json_data(send_data);
+        Ok(send_data) => {
             ctx.text(send_data);
         }
         Err(err) => {
