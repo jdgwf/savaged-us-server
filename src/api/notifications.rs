@@ -33,11 +33,11 @@ pub async fn api_notifications_get(
         None => {}
     }
 
-    let current_user = get_remote_user(pool.clone(), api_key, login_token, request);
+    let current_user = get_remote_user(&pool, api_key, login_token, request);
 
     match current_user {
         Some(user) => {
-            return Json(get_notifications_for_user(pool.clone(), user.id));
+            return Json(get_notifications_for_user(&pool, user.id));
         }
         None => {
             return Json(Vec::new());
@@ -84,7 +84,7 @@ pub async fn api_notifications_set_deleted(
         None => {}
     }
 
-    let current_user = get_remote_user(pool.clone(), api_key, login_token, request);
+    let current_user = get_remote_user(&pool, api_key, login_token, request);
 
     match current_user {
         Some(user) => {
@@ -108,12 +108,12 @@ pub async fn api_notifications_set_deleted(
                         .unwrap();
                     match notifications_result {
                         Some(_) => {
-                            return Json(get_notifications_for_user(pool.clone(), user.id));
+                            return Json(get_notifications_for_user(&pool, user.id));
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json(get_notifications_for_user(pool.clone(), user.id));
+                            return Json(get_notifications_for_user(&pool, user.id));
                         }
                     }
                 }
@@ -177,7 +177,7 @@ pub async fn api_notifications_set_read(
         None => {}
     }
 
-    let current_user = get_remote_user(pool.clone(), api_key, login_token, request);
+    let current_user = get_remote_user(&pool, api_key, login_token, request);
 
     match current_user {
         Some(user) => {
@@ -203,12 +203,12 @@ pub async fn api_notifications_set_read(
                         .unwrap();
                     match notifications_result {
                         Some(_) => {
-                            return Json(get_notifications_for_user(pool.clone(), user.id));
+                            return Json(get_notifications_for_user(&pool, user.id));
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json(get_notifications_for_user(pool.clone(), user.id));
+                            return Json(get_notifications_for_user(&pool, user.id));
                         }
                     }
                 }
@@ -246,7 +246,7 @@ pub async fn api_notifications_set_all_read(
         None => {}
     }
 
-    let current_user = get_remote_user(pool.clone(), api_key, login_token, request);
+    let current_user = get_remote_user(&pool, api_key, login_token, request);
 
     match current_user {
         Some(user) => {
@@ -266,12 +266,12 @@ pub async fn api_notifications_set_all_read(
                         .unwrap();
                     match notifications_result {
                         Some(_) => {
-                            return Json(get_notifications_for_user(pool.clone(), user.id));
+                            return Json(get_notifications_for_user(&pool, user.id));
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json(get_notifications_for_user(pool.clone(), user.id));
+                            return Json(get_notifications_for_user(&pool, user.id));
                         }
                     }
                 }
@@ -287,7 +287,7 @@ pub async fn api_notifications_set_all_read(
     }
 }
 
-pub fn get_notifications_for_user(pool: Data<Pool>, current_user_id: u32) -> Vec<Notification> {
+pub fn get_notifications_for_user(pool: &Data<Pool>, current_user_id: u32) -> Vec<Notification> {
     match pool.get_conn() {
         Ok(mut conn) => {
             let notifications_result = conn.query_map(
@@ -363,7 +363,7 @@ pub async fn api_notifications_delete_basic_admin(
         None => {}
     }
 
-    let current_user = get_remote_user(pool.clone(), api_key, login_token, request);
+    let current_user = get_remote_user(&pool, api_key, login_token, request);
 
     match current_user {
         Some(user) => {
@@ -395,12 +395,12 @@ pub async fn api_notifications_delete_basic_admin(
                         .unwrap();
                     match notifications_result {
                         Some(_) => {
-                            return Json(get_notifications_for_user(pool.clone(), user.id));
+                            return Json(get_notifications_for_user(&pool, user.id));
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json(get_notifications_for_user(pool.clone(), user.id));
+                            return Json(get_notifications_for_user(&pool, user.id));
                         }
                     }
                 }

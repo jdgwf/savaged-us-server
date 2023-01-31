@@ -14,7 +14,7 @@ pub async fn web_socket_router(
     // Path(group_id): Path<Uuid>,
     chat_server: Data<Addr<Lobby>>,
 ) -> Result<HttpResponse, Error> {
-    let user = get_user_from_login_token(pool.clone(), None, req.clone());
+    let user = get_user_from_login_token(&pool, None, req.clone());
 
     let ws = ServerWebsocket::new(
         user,

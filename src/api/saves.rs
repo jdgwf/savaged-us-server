@@ -62,7 +62,7 @@ pub async fn auth_get_user_saves(
     // println!("api_key {:?}", api_key);
     // println!("login_token {:?}", login_token);
 
-    let user = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user = get_remote_user(&pool, api_key, login_token, request);
 
     match user {
         Some(user) => {

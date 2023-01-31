@@ -28,12 +28,12 @@ pub async fn api_admin_users_get(
         }
         None => {}
     }
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {
             if user.has_admin_access() {
-                return Json(admin_get_users(pool, form));
+                return Json(admin_get_users(&pool, form));
             }
         }
         None => {}
@@ -62,12 +62,12 @@ pub async fn api_admin_users_paging(
         }
         None => {}
     }
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {
             if user.has_admin_access() {
-                return Json(admin_get_users_paging_data(pool, form));
+                return Json(admin_get_users_paging_data(&pool, form));
             }
         }
         None => {}

@@ -3,7 +3,7 @@ use crate::{
     db::{
         game_data::get_game_data_package,
         saves::get_user_saves,
-        users::{get_user_from_login_token, update_user_login_tokens},
+        users::{get_user_from_login_token, update_user_login_tokens}, get_web_content,
     },
     utils::send_standard_email,
 };
@@ -29,11 +29,11 @@ pub fn handle_message(
             msg_send.kind = WebsocketMessageType::Saves;
             if msg.token != None {
                 let user_option =
-                    get_user_from_login_token(ws.pool.clone(), msg.token, ws.req.clone());
+                    get_user_from_login_token(&ws.pool, msg.token, ws.req.clone());
                 match user_option {
                     Some(user) => {
                         let saves =
-                            get_user_saves(&ws.pool.clone(), user.id, msg.updated_on, false);
+                            get_user_saves(&&ws.pool, user.id, msg.updated_on, false);
                         // for item in &saves {
                         //     if (&item.name).to_owned() == "Chi Master".to_owned() {
                         //         println!("saves item {:?}", item);
@@ -54,7 +54,7 @@ pub fn handle_message(
             msg_send.kind = WebsocketMessageType::GameDataPackage;
             if msg.token != None {
                 let user_option =
-                    get_user_from_login_token(ws.pool.clone(), msg.token, ws.req.clone());
+                    get_user_from_login_token(&ws.pool, msg.token, ws.req.clone());
                 match user_option {
                     Some(user) => {
                         // ws.user = Some(user.get_public_info());
@@ -63,7 +63,7 @@ pub fn handle_message(
                         // println!("** Online {:?}", ws.user);
 
                         msg_send.game_data = Some(get_game_data_package(
-                            &ws.pool.clone(),
+                            &&ws.pool,
                             user.id,
                             msg.updated_on,
                             true,
@@ -74,7 +74,7 @@ pub fn handle_message(
                         ));
 
                         // println!("{:?}", msg.game_data );
-                        // let pool = ws.pool.clone();
+                        // let pool = &ws.pool;
                         // let user_id = user.id;
                         // task::spawn_local(async move {
                         //     println!("** Moo?");
@@ -89,7 +89,7 @@ pub fn handle_message(
                     }
                     None => {
                         msg_send.game_data = Some(get_game_data_package(
-                            &ws.pool.clone(),
+                            &&ws.pool,
                             0,
                             msg.updated_on,
                             false, // access_registered
@@ -102,7 +102,7 @@ pub fn handle_message(
                 }
             } else {
                 msg_send.game_data = Some(get_game_data_package(
-                    &ws.pool.clone(),
+                    &&ws.pool,
                     0,
                     msg.updated_on,
                     false, // access_registered
@@ -125,17 +125,17 @@ pub fn handle_message(
 
             msg_send.kind = WebsocketMessageType::Online;
             // send_message( msg_send, ctx );
-
+            msg_send.web_content = Some(get_web_content(ws.pool.clone()));
             if msg.token != None {
                 let user_option =
-                    get_user_from_login_token(ws.pool.clone(), msg.token, ws.req.clone());
+                    get_user_from_login_token(&ws.pool, msg.token, ws.req.clone());
                 match user_option {
                     Some(user) => {
                         ws.user = Some(user.clone());
 
                         msg_send.user = Some(user.clone());
 
-                        // let pool = ws.pool.clone();
+                        // let pool = &ws.pool;
                         // let user_id = user.id;
                         // task::spawn_local(async move {
                         //     println!("** Moo?");
@@ -222,7 +222,7 @@ pub fn handle_message(
             match msg.token {
                 Some(msg_token) => {
                     let user_option = get_user_from_login_token(
-                        ws.pool.clone(),
+                        &ws.pool,
                         Some(msg_token.clone()),
                         ws.req.clone(),
                     );
@@ -239,12 +239,12 @@ pub fn handle_message(
                                 login_tokens.push(token_entry);
                             }
 
-                            update_user_login_tokens(ws.pool.clone(), user.id, login_tokens);
+                            update_user_login_tokens(&ws.pool, user.id, login_tokens);
                             // ws.user = Some(user.get_public_info());
 
                             // msg_send.user = Some(user.clone());
 
-                            // // let pool = ws.pool.clone();
+                            // // let pool = &ws.pool;
                             // // let user_id = user.id;
                             // // task::spawn_local(async move {
                             // //     println!("** Moo?");

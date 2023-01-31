@@ -11,7 +11,7 @@ pub struct SmallHindrance {
     name: String,
     book_id: String,
 }
-pub fn get_hindrances(pool: Data<Pool>) -> Vec<SmallHindrance> {
+pub fn get_hindrances(pool: &Data<Pool>) -> Vec<SmallHindrance> {
     match pool.get_conn() {
         Ok(mut conn) => {
             let get_hindrances_result = conn.query_map(

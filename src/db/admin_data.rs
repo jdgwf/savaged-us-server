@@ -16,7 +16,7 @@ const DATA_SEARCH_FIELDS: &'static [&'static str] = &[
 ];
 
 pub fn db_admin_delete_game_data(
-    pool: Data<Pool>,
+    pool: &Data<Pool>,
     table: String,
     user_id: u32,
     row_id: u32,
@@ -64,7 +64,7 @@ pub fn db_admin_delete_game_data(
 }
 
 pub fn db_admin_update_game_data(
-    pool: Data<Pool>,
+    pool: &Data<Pool>,
     table: String,
     user_id: u32,
     row_id: u32,
@@ -114,7 +114,7 @@ pub fn db_admin_update_game_data(
 }
 
 pub fn db_admin_insert_game_data(
-    pool: Data<Pool>,
+    pool: &Data<Pool>,
     table: String,
     user_id: u32,
     data: String,
@@ -174,7 +174,7 @@ pub fn db_admin_insert_game_data(
 }
 
 pub fn db_admin_get_game_data_paging_data(
-    pool: Data<Pool>,
+    pool: &Data<Pool>,
     table: String,
     paging_params: Json<FetchAdminParameters>,
 ) -> AdminPagingStatistics {
@@ -278,7 +278,7 @@ pub fn db_admin_get_game_data_paging_data(
 }
 
 pub fn db_admin_get_game_data(
-    pool: Data<Pool>,
+    pool: &Data<Pool>,
     table: String,
     paging_params: Json<FetchAdminParameters>,
 ) -> Vec<GameDataRow> {
@@ -524,7 +524,7 @@ pub fn db_admin_get_game_data(
     return Vec::new();
 }
 
-pub fn db_admin_admin_get_item(pool: Data<Pool>, table: String, id: u32) -> Option<GameDataRow> {
+pub fn db_admin_admin_get_item(pool: &Data<Pool>, table: String, id: u32) -> Option<GameDataRow> {
     let data_query = format!(
         "
         SELECT

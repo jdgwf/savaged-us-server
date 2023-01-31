@@ -59,12 +59,12 @@ pub async fn api_user_save_username(
         None => {}
     }
 
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {
             // println!("api_user_username_available called {}", &username);
-            let result_count = save_username(pool.clone(), user, username.clone());
+            let result_count = save_username(&pool, user, username.clone());
             // println!("api_user_username_available result {}", &result_count);
             if result_count == 1 {
                 return Json(true);
@@ -110,12 +110,12 @@ pub async fn api_user_username_available(
         None => {}
     }
 
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {
             // println!("api_user_username_available called {}", &username);
-            return Json(username_available(pool.clone(), user, username.clone()));
+            return Json(username_available(&pool, user, username.clone()));
         }
         None => {}
     }
@@ -165,7 +165,7 @@ pub async fn api_user_token_update_name(
         None => {}
     }
 
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {
@@ -177,7 +177,7 @@ pub async fn api_user_token_update_name(
                 }
             }
 
-            update_user_login_tokens(pool.clone(), user.id, return_tokens.clone());
+            update_user_login_tokens(&pool, user.id, return_tokens.clone());
 
             return Json(return_tokens.clone());
         }
@@ -225,7 +225,7 @@ pub async fn api_user_update_settings(
         None => {}
     }
 
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {
@@ -297,13 +297,13 @@ pub async fn api_user_update_settings(
                             new_encrypted_pass =
                                 Some(encrypt_password(form.password.clone().unwrap().to_owned()));
                             update_password(
-                                pool.clone(),
+                                &pool,
                                 user_settings.clone(),
                                 new_encrypted_pass,
                             );
                         }
 
-                        let rows_affected = update_user(pool.clone(), user_settings.clone());
+                        let rows_affected = update_user(&pool, user_settings.clone());
 
                         if rows_affected == 1 {
                             return_value.success = true;
@@ -363,7 +363,7 @@ pub async fn api_user_token_remove(
     //     None => {}
     // }
 
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {
@@ -375,7 +375,7 @@ pub async fn api_user_token_remove(
                 }
             }
 
-            update_user_login_tokens(pool.clone(), user.id, return_tokens.clone());
+            update_user_login_tokens(&pool, user.id, return_tokens.clone());
 
             return Json(return_tokens.clone());
         }
@@ -452,7 +452,7 @@ pub async fn api_user_set_user_image_data(
     //     .map(|m| m.as_ref())
     //     .unwrap_or("null");
 
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {

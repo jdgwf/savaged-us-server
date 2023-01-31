@@ -4,6 +4,7 @@ extern crate dotenv;
 use actix::Actor;
 use actix_web::http::header;
 use actix_web::HttpRequest;
+use actix_web::web;
 use mysql::*;
 
 mod utils;
@@ -12,6 +13,7 @@ mod web_sockets;
 
 // use yew::Renderer;
 use savaged_front_end::{ServerApp, ServerAppProps};
+use savaged_libs::web_content::WebContent;
 use tokio::task::spawn_blocking;
 use tokio::task::LocalSet;
 use yew::prelude::*;
@@ -62,6 +64,7 @@ use actix_web::{
     HttpServer,
 };
 
+use crate::db::get_web_content;
 use crate::web_sockets::lobby::Lobby;
 use crate::web_sockets::web_socket_router::web_socket_router;
 
@@ -272,11 +275,12 @@ async fn yew_render(pool: Data<Pool>, request: HttpRequest) -> HttpResponse {
             // let server_renderer = ServerRenderer::<ServerApp>::new();
             // let url = url.to_owned();
             let server_renderer = ServerRenderer::<ServerApp>::with_props(move || {
-                let banners = Some(get_active_banners(pool));
+
+                let web_content: WebContent = get_web_content(pool);
+
                 ServerAppProps {
                     url: AttrValue::from(url.clone()),
-                    banners: banners,
-                    partners: Some(Vec::new()),
+                    web_content: web_content,
                 }
             });
 

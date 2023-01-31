@@ -134,20 +134,20 @@ pub async fn api_auth_login_for_token(
     };
 
     let login_results = log_user_in(
-        pool.clone(),
+        &pool,
         form.email.to_owned(),
         form.password.to_owned(),
     );
 
     if login_results.user_id > 0 {
         let new_login_token = create_login_token(
-            pool.clone(),
+            &pool,
             login_results.user_id,
             user_agent.to_owned(),
             real_remote_addy.to_owned(),
         )
         .unwrap();
-        let user_result = get_user(pool.clone(), login_results.user_id);
+        let user_result = get_user(&pool, login_results.user_id);
         match user_result {
             Some(user) => {
                 rv.success = true;
@@ -191,5 +191,5 @@ pub async fn api_auth_get_user_data(
         }
         None => {}
     }
-    return Json(get_remote_user(pool.clone(), api_key, login_token, request));
+    return Json(get_remote_user(&pool, api_key, login_token, request));
 }

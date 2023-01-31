@@ -32,7 +32,7 @@ pub fn encrypt_password(password: String) -> String {
 }
 
 pub async fn send_standard_email(
-    pool: Data<Pool>,
+    pool: &Data<Pool>,
     user_id: u32,
     subject: String,
     html_message: String,

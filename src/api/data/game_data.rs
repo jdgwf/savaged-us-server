@@ -32,7 +32,7 @@ pub async fn api_game_data_get(
     // println!("api_key {:?}", api_key);
     // println!("login_token {:?}", login_token);
 
-    let current_user = get_remote_user(pool.clone(), api_key, login_token, request);
+    let current_user = get_remote_user(&pool, api_key, login_token, request);
 
     let mut access_registered = false;
     let mut access_wildcard = false;

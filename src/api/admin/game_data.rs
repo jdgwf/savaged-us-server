@@ -48,12 +48,12 @@ pub async fn api_admin_game_data_get(
         }
         None => {}
     }
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {
             if user.has_developer_access() {
-                let game_data = db_admin_get_game_data(pool, table, form);
+                let game_data = db_admin_get_game_data(&pool, table, form);
                 return Json(game_data);
             }
         }
@@ -87,14 +87,14 @@ pub async fn api_admin_game_data_paging(
         }
         None => {}
     }
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     let needs_book_list = form.needs_book_list;
 
     match user_option {
         Some(user) => {
             if user.has_developer_access() {
-                let mut val = db_admin_get_game_data_paging_data(pool.clone(), table, form);
+                let mut val = db_admin_get_game_data_paging_data(&pool, table, form);
                 if needs_book_list {
                     val.book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
                 }
@@ -135,7 +135,7 @@ pub async fn api_admin_game_data_save(
         }
         None => {}
     }
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     // let needs_book_list = form.needs_book_list;
     // println!("needs_book_list {}", needs_book_list);
@@ -144,7 +144,7 @@ pub async fn api_admin_game_data_save(
             if user.has_developer_access() {
                 let book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
 
-                let item_opt = db_admin_admin_get_item(pool.clone(), table.to_owned(), form.id);
+                let item_opt = db_admin_admin_get_item(&pool, table.to_owned(), form.id);
 
                 match item_opt {
                     Some(item) => {
@@ -153,7 +153,7 @@ pub async fn api_admin_game_data_save(
                         {
                             println!("saving {}", form.id);
                             let _affected_rows = db_admin_update_game_data(
-                                pool.clone(),
+                                &pool,
                                 table.to_owned(),
                                 user.id,
                                 form.id,
@@ -168,7 +168,7 @@ pub async fn api_admin_game_data_save(
                                     + &form.name
                                     + &"' has been saved".to_owned(),
                                 game_data: Some(db_admin_get_game_data(
-                                    pool,
+                                    &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
                                 )),
@@ -179,7 +179,7 @@ pub async fn api_admin_game_data_save(
                                 level: AlertLevel::Danger,
                                 message: "You do not have access to save this item!".to_owned(),
                                 game_data: Some(db_admin_get_game_data(
-                                    pool,
+                                    &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
                                 )),
@@ -193,7 +193,7 @@ pub async fn api_admin_game_data_save(
                             if form.id == 0 {
                                 println!("inserting {}", form.id);
                                 let _affected_rows = db_admin_insert_game_data(
-                                    pool.clone(),
+                                    &pool,
                                     table.to_owned(),
                                     user.id,
                                     form.data.clone(),
@@ -206,7 +206,7 @@ pub async fn api_admin_game_data_save(
                                         + &form.name
                                         + &"' has been added".to_owned(),
                                     game_data: Some(db_admin_get_game_data(
-                                        pool,
+                                        &pool,
                                         table,
                                         Json(form.fetch_parameters.clone()),
                                     )),
@@ -217,7 +217,7 @@ pub async fn api_admin_game_data_save(
                                 level: AlertLevel::Danger,
                                 message: "Cannot find item!".to_owned(),
                                 game_data: Some(db_admin_get_game_data(
-                                    pool,
+                                    &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
                                 )),
@@ -228,7 +228,7 @@ pub async fn api_admin_game_data_save(
                                 level: AlertLevel::Danger,
                                 message: "No access to save to book!".to_owned(),
                                 game_data: Some(db_admin_get_game_data(
-                                    pool,
+                                    &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
                                 )),
@@ -287,7 +287,7 @@ pub async fn api_admin_game_data_delete(
         None => {}
     }
 
-    let user_option = get_remote_user(pool.clone(), api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request);
 
     match user_option {
         Some(user) => {
@@ -301,13 +301,13 @@ pub async fn api_admin_game_data_delete(
 
                 let book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
 
-                let item_opt = db_admin_admin_get_item(pool.clone(), table.to_owned(), form.id);
+                let item_opt = db_admin_admin_get_item(&pool, table.to_owned(), form.id);
 
                 match item_opt {
                     Some(item) => {
                         if user.admin_can_delete_item(&book_list, item.created_by, item.book_id) {
                             let _affected_rows = db_admin_delete_game_data(
-                                pool.clone(),
+                                &pool,
                                 table.to_owned(),
                                 user.id,
                                 form.id,
@@ -319,7 +319,7 @@ pub async fn api_admin_game_data_delete(
                                 + &"' has been deleted.".to_owned();
 
                             rv.game_data = Some(db_admin_get_game_data(
-                                pool,
+                                &pool,
                                 table,
                                 Json(form.fetch_parameters.clone()),
                             ));
@@ -331,7 +331,7 @@ pub async fn api_admin_game_data_delete(
                                 level: AlertLevel::Danger,
                                 message: "You do not have access to delete this item!".to_owned(),
                                 game_data: Some(db_admin_get_game_data(
-                                    pool,
+                                    &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
                                 )),
@@ -344,7 +344,7 @@ pub async fn api_admin_game_data_delete(
                             level: AlertLevel::Danger,
                             message: "Cannot find item!".to_owned(),
                             game_data: Some(db_admin_get_game_data(
-                                pool,
+                                &pool,
                                 table,
                                 Json(form.fetch_parameters.clone()),
                             )),

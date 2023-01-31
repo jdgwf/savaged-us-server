@@ -5,7 +5,7 @@ use savaged_libs::book::Book;
 
 // #[get("/_api/books-get")]
 // pub async fn books_get(
-//     pool: Data<Pool>,
+//     pool: Data<Pool>
 // ) -> Json<Vec<Book>> {
 //     let rows = get_books(
 //         &pool,

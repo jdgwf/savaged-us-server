@@ -210,7 +210,7 @@ impl ServerWebsocket {
 }
 
 // pub async fn start_websocket_connection(
-//     pool: Data<Pool>,
+//     pool: Data<Pool>
 //     chat_server: Addr<Lobby>,
 //     req: HttpRequest,
 //     stream: web::Payload,

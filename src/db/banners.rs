@@ -3,7 +3,7 @@ use mysql::prelude::*;
 use mysql::*;
 use savaged_libs::banner::{Banner, SimpleBanner};
 
-pub fn get_active_banners(pool: Data<Pool>) -> Vec<SimpleBanner> {
+pub fn get_active_banners(pool: &Data<Pool>) -> Vec<SimpleBanner> {
     match pool.get_conn() {
         Ok(mut conn) => {
             let get_banners_result = conn.query_map(
@@ -39,7 +39,7 @@ pub fn get_active_banners(pool: Data<Pool>) -> Vec<SimpleBanner> {
     return Vec::new();
 }
 
-pub fn get_banners(pool: Data<Pool>) -> Vec<Banner> {
+pub fn get_banners(pool: &Data<Pool>) -> Vec<Banner> {
     match pool.get_conn() {
         Ok(mut conn) => {
             let get_banners_result = conn.query_map(
