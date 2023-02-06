@@ -75,7 +75,7 @@ pub async fn api_user_save_username(
     return Json(false);
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UserNameForm {
     username: Option<String>,
     api_key: Option<String>,
@@ -122,7 +122,7 @@ pub async fn api_user_username_available(
     return Json(false);
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UpdateTokenNameForm {
     api_key: Option<String>,
     login_token: Option<String>,
@@ -187,7 +187,7 @@ pub async fn api_user_token_update_name(
     return Json(Vec::new());
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct UpdateSettingData {
     api_key: Option<String>,
     login_token: Option<String>,

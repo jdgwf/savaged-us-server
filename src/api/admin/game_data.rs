@@ -33,6 +33,7 @@ pub async fn api_admin_game_data_get(
 ) -> Json<Vec<GameDataRow>> {
     let table = path.into_inner().0.to_string();
     // println!("api_admin_game_data_get table {}", table);
+    // println!("api_admin_game_data_get form {:?}", form);
 
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;

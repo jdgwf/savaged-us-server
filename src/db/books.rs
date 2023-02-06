@@ -138,7 +138,7 @@ pub fn get_books(
     return Vec::new();
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RowData {
     pub id: u32,
     pub data: Option<String>,

@@ -45,7 +45,7 @@ pub async fn api_notifications_get(
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct NotificationForm {
     pub api_key: Option<String>,
     pub login_token: Option<String>,

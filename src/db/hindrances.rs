@@ -5,7 +5,7 @@ use mysql::prelude::*;
 use mysql::*;
 use savaged_libs::player_character::hindrance::Hindrance;
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct SmallHindrance {
     id: u32,
     name: String,

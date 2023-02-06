@@ -49,6 +49,8 @@ pub fn get_game_data_package(
 
     let armor = get_armor(&pool, updated_on, &book_ids, all);
     let weapons = get_weapons(&pool, updated_on, &book_ids, all);
+    // let weapons: Vec<Weapon> = Vec::new();
+    // let armor: Vec<Armor> = Vec::new();
 
     let mut data_level: GameDataPackageLevel = GameDataPackageLevel::Anonymous;
 
@@ -185,7 +187,7 @@ pub fn get_game_data_table_data(
     return Vec::new();
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct RowData {
     pub id: u32,
     pub data: Option<String>,
@@ -425,7 +427,7 @@ pub fn get_armor(
                         data.created_by = row.created_by;
                         data.updated_by = row.updated_by;
                         data.deleted_by = row.deleted_by;
-
+                        println!("{:?}", data.pf_armor_type);
                         parsed_data.push(data);
                     }
                     Err(err) => {

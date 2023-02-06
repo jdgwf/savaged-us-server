@@ -73,7 +73,7 @@ use serde::{Deserialize, Serialize};
 //     return Json( Vec::new() );
 // }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct LoginForm {
     email: String,
     password: String,
@@ -163,7 +163,7 @@ pub async fn api_auth_login_for_token(
     return Json(rv);
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApiKeyOrToken {
     #[serde(default)]
     pub api_key: Option<String>,

@@ -115,24 +115,40 @@ pub fn admin_filter_where_clause(
                 }
             }
 
+            if params.hide_no_select {
+                rv += "\tAND `no_select` < 1 ";
+
+            }
+
             return rv;
         }
         None => {
+            let mut rv = "".to_string();
             if uses_book_id && params.filter_book > 0 {
                 if remove_primary {
-                    return format!(
+                    rv += format!(
                         "\tAND `{}` = '{}' ",
                         "primary`.`book_id".replace("primary`.`", ""),
                         params.filter_book
-                    );
+                    ).as_str();
                 } else {
-                    return format!(
+                    rv += format!(
                         "\tAND `{}` = '{}' ",
                         "primary`.`book_id", params.filter_book
-                    );
+                    ).as_str();
                 }
+                if params.hide_no_select {
+                    rv += "\tAND `no_select` < 1 ";
+
+                }
+                return rv;
             } else {
-                return "".to_owned();
+                if params.hide_no_select {
+                    return "\tAND `no_select` < 1 ".to_string();
+
+                } else {
+                    return "".to_string();
+                }
             }
         }
     }

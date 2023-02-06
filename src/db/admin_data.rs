@@ -476,12 +476,15 @@ pub fn db_admin_get_game_data(
     //      "1" => 1
     // };
 
+
     data_query = data_query
         + admin_filter_where_clause(DATA_SEARCH_FIELDS, &paging_params, false, true).as_str();
 
     data_query = data_query + &"\norder by `book`.`name` ASC, `primary`.`name` ASC\n" + &paging;
 
     // println!("admin_get_game_data data_query:\n{}", data_query);
+
+    // println!("{}", &data_query);
 
     match pool.get_conn() {
         Ok(mut conn) => {
