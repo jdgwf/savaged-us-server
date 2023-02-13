@@ -1,3 +1,4 @@
+use actix_session::Session;
 // use mysql::*;
 // use mysql::prelude::*;
 use mysql::Pool;
@@ -161,7 +162,121 @@ pub async fn api_auth_login_for_token(
     }
 
     return Json(rv);
+
 }
+
+
+#[post("/_api/auth/login")]
+pub async fn api_auth_login(
+    pool: Data<Pool>,
+    form: Json<LoginForm>,
+    request: HttpRequest,
+    session: Session,
+) -> Json<LoginTokenResult> {
+    let conn_info = request.connection_info();
+
+    // println!("api_auth_login called");
+    let mut real_remote_addy = "".to_string();
+    let mut user_agent = "".to_string();
+    let mut x_forwarded_for = "".to_string();
+
+    let real_remote_addy_option = conn_info.realip_remote_addr();
+    match real_remote_addy_option {
+        Some(val) => {
+            real_remote_addy = val.to_string();
+        }
+        None => {}
+    }
+
+    let user_agent_option = request.headers().get("user-agent");
+    match user_agent_option {
+        Some(val) => {
+            user_agent = format!("{:?}", val).to_string().replace("\"", "");
+        }
+        None => {}
+    }
+
+    let x_forwarded_for_option = request.headers().get("x-forwarded-for");
+    match x_forwarded_for_option {
+        Some(val) => {
+            x_forwarded_for = format!("{:?}", val).to_string().replace("\"", "");
+        }
+        None => {}
+    }
+
+    // println!("real_remote_addy {}", real_remote_addy);
+    // println!("user_agent {}", user_agent);
+    // println!("x_forwarded_for {}", x_forwarded_for);
+
+    if !x_forwarded_for.is_empty() {
+        real_remote_addy = x_forwarded_for;
+    }
+
+    let mut rv = LoginTokenResult {
+        success: false,
+        active_notifications: 0,
+        user: User::default(),
+        user_groups: Vec::new(),
+        login_token: "".to_owned(),
+        last_seen: None,
+        registered: None,
+    };
+
+    let login_results = log_user_in(
+        &pool,
+        form.email.to_owned(),
+        form.password.to_owned(),
+    );
+
+    if login_results.user_id > 0 {
+
+        let session_result= session.get::<u32>("user_id");
+
+
+        match session_result {
+            Ok( user_id_option ) => {
+                match user_id_option {
+                    Some( user_id ) => {
+                        // println!("SESSION value: {}", user_id);
+                        // session_user_id = user_id;
+                        session.insert("user_id", login_results.user_id);
+                    }
+                    None => {
+                        session.insert("user_id", login_results.user_id);
+                    }
+                }
+
+            }
+            Err( err ) => {
+                println!("Session Error {}", err);
+            }
+        }
+        // let new_login_token = create_login_token(
+        //     &pool,
+        //     login_results.user_id,
+        //     user_agent.to_owned(),
+        //     real_remote_addy.to_owned(),
+        // )
+        // .unwrap();
+        let user_result = get_user(&pool, login_results.user_id);
+        match user_result {
+            Some(user) => {
+                rv.success = true;
+                rv.login_token = "".to_owned();
+                rv.user = user.clone();
+                rv.user.get_image("");
+                rv.registered = user.created_on.clone();
+            }
+            None => {}
+        }
+
+    }
+
+    return Json(rv);
+
+}
+
+
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApiKeyOrToken {

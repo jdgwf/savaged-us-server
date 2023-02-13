@@ -2,11 +2,13 @@ mod api;
 mod db;
 extern crate dotenv;
 use actix::Actor;
+use actix_session::storage::SessionKey;
+use actix_web::body::MessageBody;
 use actix_web::http::header;
 use actix_web::HttpRequest;
 use actix_web::web;
 use mysql::*;
-
+use actix_web::cookie::Key;
 mod utils;
 mod web_sockets;
 // use web_sockets::start_websocket_connection;
@@ -24,9 +26,11 @@ use db::banners::get_active_banners;
 // use std::path::PathBuf;
 use api::auth::{
     api_auth_get_user_data,
-    // get_user_groups,
+    api_auth_login,
     api_auth_login_for_token,
 };
+
+use actix_session::{Session, SessionMiddleware, storage::CookieSessionStore};
 
 use api::user::{
     api_user_save_username, api_user_set_user_image_data, api_user_token_remove,
@@ -65,11 +69,26 @@ use actix_web::{
 };
 
 use crate::db::get_web_content;
+use crate::db::users::get_user;
 use crate::web_sockets::lobby::Lobby;
 use crate::web_sockets::web_socket_router::web_socket_router;
 
 pub const CONFIG_ALLOWED_IMAGE_TYPES: &'static [&'static str] =
     &["image/jpeg", "image/jpg", "image/png", "image/webp"];
+
+fn get_secret_key() -> Key {
+    // let key: String = std::iter::repeat('a').take(4065).collect();
+    // let session_key: Result<SessionKey, _> = key.try_into();
+    let mut secret_key = "".to_string();
+    match std::env::var("SHA_SECRET_KEY") {
+        Ok(val) => {
+            secret_key = val.clone() + &"-" + &val;
+        }
+        Err(_) => {}
+    };
+
+    return Key::from( secret_key.as_str().as_bytes() );
+}
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -136,6 +155,7 @@ async fn main() -> std::io::Result<()> {
         Err(_) => {}
     };
 
+
     let mut db_conn_url = format!(
         "mysql://{}:{}@{}:{}/{}",
         db_user, db_password, db_host, db_port, db_database,
@@ -152,6 +172,8 @@ async fn main() -> std::io::Result<()> {
         );
     }
 
+
+
     // let mysql_connection_pool;
 
     println!(
@@ -161,6 +183,8 @@ async fn main() -> std::io::Result<()> {
             db_user, "REDACTED", db_host, db_port, db_database,
         )
     );
+
+    let cookie_secret_key = get_secret_key();
 
     match Opts::try_from(db_conn_url.as_ref()) {
         Ok(opts) => {
@@ -191,6 +215,12 @@ async fn main() -> std::io::Result<()> {
                         App::new()
                             .wrap(logger)
                             .wrap(cors)
+                            .wrap(
+                                SessionMiddleware::new(
+                                    CookieSessionStore::default(),
+                                    cookie_secret_key.clone()
+                                )
+                            )
                             // .app_data(ApiError::json_error(JsonConfig::default()))
                             .app_data(Data::new(mysql_connection_pool.clone()))
                             .app_data(Data::new(chat_server.clone()))
@@ -201,6 +231,7 @@ async fn main() -> std::io::Result<()> {
                             .service(web_socket_router)
                             // Authentication Handlers
                             .service(api_auth_login_for_token)
+                            .service(api_auth_login)
                             .service(api_auth_get_user_data)
                             // Saves Handlers
                             .service(auth_get_user_saves)
@@ -263,20 +294,56 @@ async fn main() -> std::io::Result<()> {
     }
 }
 
-async fn yew_render(pool: Data<Pool>, request: HttpRequest) -> HttpResponse {
+async fn yew_render(
+    pool: Data<Pool>,
+    request: HttpRequest,
+    session: Session,
+) -> HttpResponse {
     let url = request.uri().to_string();
+
+
+    let mut session_user_id: u32 = 0;
+    let session_result= session.get::<u32>("user_id");
+
+    match session_result {
+        Ok( user_id_option ) => {
+            match user_id_option {
+                Some( user_id ) => {
+                    println!("SESSION value: {}", user_id);
+                    session_user_id = user_id;
+                }
+                None => {}
+            }
+
+        }
+        Err( err ) => {
+            println!("Session Error {}", err);
+        }
+    }
+
+    let user = get_user( &pool, session_user_id );
+
     let content = spawn_blocking(move || {
         use tokio::runtime::Builder;
         let set = LocalSet::new();
 
         let rt = Builder::new_current_thread().enable_all().build().unwrap();
 
+
+
         set.block_on(&rt, async {
             // let server_renderer = ServerRenderer::<ServerApp>::new();
             // let url = url.to_owned();
             let server_renderer = ServerRenderer::<ServerApp>::with_props(move || {
 
-                let web_content: WebContent = get_web_content(pool);
+                let mut web_content: WebContent = get_web_content(&pool);
+
+                web_content.user = get_user(
+                    &pool,
+                    session_user_id
+                );
+
+                web_content.user = user;
 
                 ServerAppProps {
                     url: AttrValue::from(url.clone()),

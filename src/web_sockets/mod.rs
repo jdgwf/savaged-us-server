@@ -76,13 +76,21 @@ impl Actor for ServerWebsocket {
 impl Handler<WsMessage> for ServerWebsocket {
     type Result = ();
 
-    fn handle(&mut self, msg: WsMessage, ctx: &mut Self::Context) {
+    fn handle(
+        &mut self,
+        msg: WsMessage,
+        ctx: &mut Self::Context,
+    ) {
         ctx.text(msg.0);
     }
 }
 
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
-    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+    fn handle(
+        &mut self,
+        msg: Result<ws::Message, ws::ProtocolError>,
+        ctx: &mut Self::Context,
+    ) {
         match msg {
             Ok(actix_web_actors::ws::Message::Continuation(_)) => {}
             Ok(actix_web_actors::ws::Message::Nop) => {}

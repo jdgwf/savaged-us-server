@@ -427,7 +427,7 @@ pub fn get_armor(
                         data.created_by = row.created_by;
                         data.updated_by = row.updated_by;
                         data.deleted_by = row.deleted_by;
-                        println!("{:?}", data.pf_armor_type);
+                        // println!("{:?}", data.pf_armor_type);
                         parsed_data.push(data);
                     }
                     Err(err) => {

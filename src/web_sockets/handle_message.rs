@@ -7,6 +7,7 @@ use crate::{
     },
     utils::send_standard_email,
 };
+use actix_session::Session;
 use actix_web_actors::ws;
 use chrono::prelude::*;
 use log::Log;
@@ -27,24 +28,37 @@ pub fn handle_message(
 
             let mut msg_send = WebSocketMessage::default();
             msg_send.kind = WebsocketMessageType::Saves;
-            if msg.token != None {
-                let user_option =
-                    get_user_from_login_token(&ws.pool, msg.token, ws.req.clone());
-                match user_option {
-                    Some(user) => {
-                        let saves =
-                            get_user_saves(&&ws.pool, user.id, msg.updated_on, false);
-                        // for item in &saves {
-                        //     if (&item.name).to_owned() == "Chi Master".to_owned() {
-                        //         println!("saves item {:?}", item);
-                        //     }
-                        // }
-                        msg_send.saves = Some(saves);
-                    }
-                    None => {}
+            // if msg.token != None {
+            //     let user_option =
+            //         get_user_from_login_token(&ws.pool, msg.token, ws.req.clone());
+            //     match user_option {
+            //         Some(user) => {
+            //             let saves =
+            //                 get_user_saves(&&ws.pool, user.id, msg.updated_on, false);
+            //             // for item in &saves {
+            //             //     if (&item.name).to_owned() == "Chi Master".to_owned() {
+            //             //         println!("saves item {:?}", item);
+            //             //     }
+            //             // }
+            //             msg_send.saves = Some(saves);
+            //         }
+            //         None => {}
+            //     }
+            // }
+            // println!("Saves {:?}", &ws.user);
+            match ws.user.clone() {
+                Some(user) => {
+                    let saves =
+                        get_user_saves(&&ws.pool, user.id, msg.updated_on, false);
+                    // for item in &saves {
+                    //     if (&item.name).to_owned() == "Chi Master".to_owned() {
+                    //         println!("saves item {:?}", item);
+                    //     }
+                    // }
+                    msg_send.saves = Some(saves);
                 }
+                None => {}
             }
-
             send_message(msg_send, ctx);
         }
         WebsocketMessageType::GameDataPackage => {
@@ -52,67 +66,96 @@ pub fn handle_message(
 
             let mut msg_send = WebSocketMessage::default();
             msg_send.kind = WebsocketMessageType::GameDataPackage;
-            if msg.token != None {
-                let user_option =
-                    get_user_from_login_token(&ws.pool, msg.token, ws.req.clone());
-                match user_option {
-                    Some(user) => {
-                        // ws.user = Some(user.get_public_info());
+            // if msg.token != None {
+            //     let user_option =
+            //         get_user_from_login_token(&ws.pool, msg.token, ws.req.clone());
+            //     match user_option {
+            //         Some(user) => {
+            //             // ws.user = Some(user.get_public_info());
 
-                        // msg_send.user = Some(user.clone());
-                        // println!("** Online {:?}", ws.user);
+            //             // msg_send.user = Some(user.clone());
+            //             // println!("** Online {:?}", ws.user);
 
-                        msg_send.game_data = Some(get_game_data_package(
-                            &&ws.pool,
-                            user.id,
-                            msg.updated_on,
-                            true,
-                            user.is_premium,   // access_wildcard,
-                            user.is_developer, // access_developer,
-                            user.is_admin,     // access_admin,
-                            false,             // all
-                        ));
+            //             msg_send.game_data = Some(get_game_data_package(
+            //                 &&ws.pool,
+            //                 user.id,
+            //                 msg.updated_on,
+            //                 true,
+            //                 user.is_premium,   // access_wildcard,
+            //                 user.is_developer, // access_developer,
+            //                 user.is_admin,     // access_admin,
+            //                 false,             // all
+            //             ));
 
-                        // println!("{:?}", msg.game_data );
-                        // let pool = &ws.pool;
-                        // let user_id = user.id;
-                        // task::spawn_local(async move {
-                        //     println!("** Moo?");
-                        //     send_standard_email(
-                        //         pool,
-                        //         user_id,
-                        //         "Helloooooo".to_string(),
-                        //         r#"Don't be such a fart face <strong>Strong text</strong>"#.to_string()
-                        //     ).await;
-                        //     }
-                        // );
-                    }
-                    None => {
-                        msg_send.game_data = Some(get_game_data_package(
-                            &&ws.pool,
-                            0,
-                            msg.updated_on,
-                            false, // access_registered
-                            false, // access_wildcard,
-                            false, // access_developer,
-                            false, // access_admin,
-                            false, // all
-                        ));
-                    }
+            //             // println!("{:?}", msg.game_data );
+            //             // let pool = &ws.pool;
+            //             // let user_id = user.id;
+            //             // task::spawn_local(async move {
+            //             //     println!("** Moo?");
+            //             //     send_standard_email(
+            //             //         pool,
+            //             //         user_id,
+            //             //         "Helloooooo".to_string(),
+            //             //         r#"Don't be such a fart face <strong>Strong text</strong>"#.to_string()
+            //             //     ).await;
+            //             //     }
+            //             // );
+            //         }
+            //         None => {
+            //             msg_send.game_data = Some(get_game_data_package(
+            //                 &&ws.pool,
+            //                 0,
+            //                 msg.updated_on,
+            //                 false, // access_registered
+            //                 false, // access_wildcard,
+            //                 false, // access_developer,
+            //                 false, // access_admin,
+            //                 false, // all
+            //             ));
+            //         }
+            //     }
+            // } else {
+            //     msg_send.game_data = Some(get_game_data_package(
+            //         &&ws.pool,
+            //         0,
+            //         msg.updated_on,
+            //         false, // access_registered
+            //         false, // access_wildcard,
+            //         false, // access_developer,
+            //         false, // access_admin,
+            //         false, // all
+            //     ));
+
+            //     // println!( "{}", serde_json::to_string(&msg_send).unwrap() );
+            // }
+
+            // println!("GameDataPackage {:?}", &ws.user);
+            match ws.user.clone() {
+                Some(user) => {
+                    msg_send.game_data = Some(get_game_data_package(
+                        &&ws.pool,
+                        user.id,
+                        msg.updated_on,
+                        true,
+                        user.is_premium,   // access_wildcard,
+                        user.is_developer, // access_developer,
+                        user.is_admin,     // access_admin,
+                        false,             // all
+                    ));
+                    // msg_send.saves = Some(saves);
                 }
-            } else {
-                msg_send.game_data = Some(get_game_data_package(
-                    &&ws.pool,
-                    0,
-                    msg.updated_on,
-                    false, // access_registered
-                    false, // access_wildcard,
-                    false, // access_developer,
-                    false, // access_admin,
-                    false, // all
-                ));
-
-                // println!( "{}", serde_json::to_string(&msg_send).unwrap() );
+                None => {
+                    msg_send.game_data = Some(get_game_data_package(
+                        &&ws.pool,
+                        0,
+                        msg.updated_on,
+                        false, // access_registered
+                        false, // access_wildcard,
+                        false, // access_developer,
+                        false, // access_admin,
+                        false, // all
+                    ));
+                }
             }
 
             send_message(msg_send, ctx);
@@ -125,31 +168,53 @@ pub fn handle_message(
 
             msg_send.kind = WebsocketMessageType::Online;
             // send_message( msg_send, ctx );
-            msg_send.web_content = Some(get_web_content(ws.pool.clone()));
-            if msg.token != None {
-                let user_option =
-                    get_user_from_login_token(&ws.pool, msg.token, ws.req.clone());
-                match user_option {
-                    Some(user) => {
-                        ws.user = Some(user.clone());
+            msg_send.web_content = Some(get_web_content(&ws.pool));
+            // if msg.token != None {
+            //     let user_option =
+            //         get_user_from_login_token(&ws.pool, msg.token, ws.req.clone());
+            //     match user_option {
+            //         Some(user) => {
+            //             ws.user = Some(user.clone());
 
-                        msg_send.user = Some(user.clone());
+            //             msg_send.user = Some(user.clone());
 
-                        // let pool = &ws.pool;
-                        // let user_id = user.id;
-                        // task::spawn_local(async move {
-                        //     println!("** Moo?");
-                        //     send_standard_email(
-                        //         pool,
-                        //         user_id,
-                        //         "Helloooooo".to_string(),
-                        //         r#"Don't be such a fart face <strong>Strong text</strong>"#.to_string()
-                        //     ).await;
-                        //     }
-                        // );
-                    }
-                    None => {}
+            //             // let pool = &ws.pool;
+            //             // let user_id = user.id;
+            //             // task::spawn_local(async move {
+            //             //     println!("** Moo?");
+            //             //     send_standard_email(
+            //             //         pool,
+            //             //         user_id,
+            //             //         "Helloooooo".to_string(),
+            //             //         r#"Don't be such a fart face <strong>Strong text</strong>"#.to_string()
+            //             //     ).await;
+            //             //     }
+            //             // );
+            //         }
+            //         None => {}
+            //     }
+            // }
+
+            match &ws.user {
+                Some(user) => {
+                    // ws.user = Some(user.clone());
+
+                    msg_send.user = Some(user.clone());
+
+                    // let pool = &ws.pool;
+                    // let user_id = user.id;
+                    // task::spawn_local(async move {
+                    //     println!("** Moo?");
+                    //     send_standard_email(
+                    //         pool,
+                    //         user_id,
+                    //         "Helloooooo".to_string(),
+                    //         r#"Don't be such a fart face <strong>Strong text</strong>"#.to_string()
+                    //     ).await;
+                    //     }
+                    // );
                 }
+                None => {}
             }
 
             send_message(msg_send, ctx);
@@ -159,7 +224,7 @@ pub fn handle_message(
 
         WebsocketMessageType::RequestUsers => {
 
-            match &ws.user {
+            match ws.user.clone() {
                 Some( user ) => {
                     if user.has_admin_access() {
                         let mut msg_send = WebSocketMessage::default();
@@ -262,6 +327,25 @@ pub fn handle_message(
                 }
                 None => {}
             }
+            // match ws.user.clone() {
+            //     Some( user ) => {
+            //         if user.has_admin_access() {
+            //             let mut msg_send = WebSocketMessage::default();
+
+            //             msg_send.kind = WebsocketMessageType::Online;
+
+            //             // ws.chat_server
+            //             // let chat_server = ws.chat_server.tx;
+
+            //             send_message(
+            //                 msg_send, ctx
+            //             );
+            //         }
+            //     }
+            //     None => {
+
+            //     }
+            // }
         }
 
         _ => {
