@@ -21,19 +21,20 @@ pub async fn web_socket_router(
 
     let session_result= session.get::<u32>("user_id");
 
-    // println!("web_socket_router");
+    println!("web_socket_router");
 
     match session_result {
         Ok( user_id_option ) => {
             match user_id_option {
                 Some( user_id ) => {
-                    // println!("web_socket_router SESSION value: {}", user_id);
+                    println!("web_socket_router SESSION value: {}", user_id);
                     // session_user_id = user_id;
-                    // session.insert("user_id", login_results.user_id);
+                    // session.insert("web_socket_router user_id", login_results.user_id);
                     user = get_user(&pool, user_id);
                 }
                 None => {
                     // session.insert("user_id", login_results.user_id);
+                    println!("web_socket_router SESSION value: None");
                 }
             }
 
@@ -48,7 +49,7 @@ pub async fn web_socket_router(
         pool.clone(),
         chat_server.get_ref().clone(),
         req.clone(),
-        // stream,
+        session,
     );
 
     let resp = ws::start(ws, &req, stream)?;

@@ -162,7 +162,7 @@ pub fn handle_message(
         }
         WebsocketMessageType::Online => {
             // println!("handle_message Online {:?}", msg);
-            // update_global_vars.emit( global_vars );
+            // update_site_vars.emit( global_vars );
 
             let mut msg_send = WebSocketMessage::default();
 
@@ -277,13 +277,21 @@ pub fn handle_message(
         WebsocketMessageType::Logout => {
             // println!("handle_message Offline {:?}", msg);
             // println!("Offline {:?}", ws.user);
-            // update_global_vars.emit( global_vars );
+            // update_site_vars.emit( global_vars );
 
             // ctx.text(msg);
             // let mut msg_send = WebSocketMessage::default();
             // msg_send.kind = WebsocketMessageType::Offline;
             // send_message( msg_send, ctx );
             // update_user_login_tokens(pool, user_id, login_tokens)
+            match ws.session.insert("user_id", 0) {
+                Ok(_) => {
+                    println!("handle_message Session ID set {}", 0);
+                }
+                Err(err) => {
+                    println!("handle_message error setting session user {:?}", err);
+                }
+            }
             match msg.token {
                 Some(msg_token) => {
                     let user_option = get_user_from_login_token(
@@ -358,7 +366,7 @@ pub fn handle_message(
         WebsocketMessageType::Offline => {
             // println!("handle_message Offline {:?}", msg);
             // println!("Offline {:?}", ws.user);
-            // update_global_vars.emit( global_vars );
+            // update_site_vars.emit( global_vars );
 
             // ctx.text(msg);
             let mut msg_send = WebSocketMessage::default();

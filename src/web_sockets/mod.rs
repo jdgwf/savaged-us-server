@@ -11,6 +11,7 @@ use actix::WrapFuture;
 use actix::{
     fut, Actor, Addr, AsyncContext, ContextFutureSpawner, Handler, Running, StreamHandler,
 };
+use actix_session::Session;
 use actix_web::web::Data;
 use actix_web::HttpRequest;
 use actix_web_actors::ws;
@@ -37,6 +38,7 @@ pub struct ServerWebsocket {
     req: HttpRequest,
     room_id: Option<Uuid>,
     location: Option<String>,
+    session: Session,
 }
 
 impl Actor for ServerWebsocket {
@@ -151,6 +153,7 @@ impl ServerWebsocket {
         pool: Data<Pool>,
         chat_server: Addr<Lobby>,
         req: HttpRequest,
+        session: Session,
     ) -> ServerWebsocket {
         let conn_info = req.connection_info();
 
@@ -189,6 +192,7 @@ impl ServerWebsocket {
         ServerWebsocket {
             id: Uuid::new_v4(),
             user: user,
+            session: session,
             hb: Instant::now(),
             pool: pool,
             chat_server: chat_server,

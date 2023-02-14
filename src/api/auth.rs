@@ -229,35 +229,15 @@ pub async fn api_auth_login(
     );
 
     if login_results.user_id > 0 {
-
-        let session_result= session.get::<u32>("user_id");
-
-
-        match session_result {
-            Ok( user_id_option ) => {
-                match user_id_option {
-                    Some( user_id ) => {
-                        // println!("SESSION value: {}", user_id);
-                        // session_user_id = user_id;
-                        session.insert("user_id", login_results.user_id);
-                    }
-                    None => {
-                        session.insert("user_id", login_results.user_id);
-                    }
-                }
-
+        match session.insert("user_id", login_results.user_id) {
+            Ok(_) => {
+                println!("api_auth_login Session ID set {}", login_results.user_id);
             }
-            Err( err ) => {
-                println!("Session Error {}", err);
+            Err(err) => {
+                println!("api_auth_login error setting session user {:?}", err);
             }
         }
-        // let new_login_token = create_login_token(
-        //     &pool,
-        //     login_results.user_id,
-        //     user_agent.to_owned(),
-        //     real_remote_addy.to_owned(),
-        // )
-        // .unwrap();
+
         let user_result = get_user(&pool, login_results.user_id);
         match user_result {
             Some(user) => {
@@ -291,9 +271,38 @@ pub async fn api_auth_get_user_data(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Option<User>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
+
+
+
+    let session_result= session.get::<u32>("user_id");
+
+    // println!("web_socket_router");
+
+    match session_result {
+        Ok( user_id_option ) => {
+            match user_id_option {
+                Some( user_id ) => {
+                    // println!("web_socket_router SESSION value: {}", user_id);
+                    // session_user_id = user_id;
+                    // session.insert("user_id", login_results.user_id);
+                    return Json(get_user(&pool, user_id));
+                }
+                None => {
+                    // session.insert("user_id", login_results.user_id);
+                }
+            }
+
+        }
+        Err( err ) => {
+            println!("Session Error {}", err);
+        }
+    }
+
+
     match &form.login_token {
         Some(val) => {
             login_token = Some(val.to_owned());
@@ -306,5 +315,6 @@ pub async fn api_auth_get_user_data(
         }
         None => {}
     }
-    return Json(get_remote_user(&pool, api_key, login_token, request));
+
+    return Json(get_remote_user(&pool, api_key, login_token, request, session));
 }

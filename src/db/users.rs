@@ -1,6 +1,7 @@
 use crate::api::notifications::get_notifications_for_user;
 use crate::db::utils::{admin_filter_where_clause, mysql_row_to_chrono_utc};
 use crate::utils::encrypt_password;
+use actix_session::Session;
 use actix_web::cookie::time::PrimitiveDateTime;
 use actix_web::web::Json;
 use chrono::prelude::*;
@@ -424,6 +425,7 @@ pub fn get_remote_user(
     api_key: Option<String>,
     token: Option<String>,
     request: HttpRequest,
+    session: Session,
 ) -> Option<User> {
     let conn_info = request.connection_info();
 
@@ -455,9 +457,9 @@ pub fn get_remote_user(
         None => {}
     }
 
-    // println!("real_remote_addy {}", real_remote_addy);
-    // println!("user_agent {}", user_agent);
-    // println!("x_forwarded_for {}", x_forwarded_for);
+    println!("get_remote_user real_remote_addy {}", real_remote_addy);
+    println!("get_remote_user user_agent {}", user_agent);
+    println!("get_remote_user x_forwarded_for {}", x_forwarded_for);
 
     if !x_forwarded_for.is_empty() {
         real_remote_addy = x_forwarded_for;
@@ -468,6 +470,7 @@ pub fn get_remote_user(
             get_user_from_login_token(&pool, token.to_owned(), request.clone());
         match token_user_result {
             Some(user) => {
+                println!("get_remote_user token login");
                 return Some(_update_user_last_seen(
                     &pool,
                     user.clone(),
@@ -484,6 +487,7 @@ pub fn get_remote_user(
                 get_user_from_api_key(&pool, api_key.unwrap().to_owned(), request.clone());
             match api_key_result {
                 Some(user) => {
+                    println!("get_remote_user api login");
                     return Some(_update_user_last_seen(
                         &pool,
                         user.clone(),
@@ -496,6 +500,39 @@ pub fn get_remote_user(
             }
         }
     }
+
+    let session_result= session.get::<u32>("user_id");
+
+    match session_result {
+        Ok( user_id_option ) => {
+            match user_id_option {
+                Some( user_id ) => {
+                    println!("get_remote_user web_socket_router SESSION value: {}", user_id);
+                    // session_user_id = user_id;
+                    // session.insert("user_id", login_results.user_id);
+                    if user_id > 0 {
+
+                        let user_option  = get_user(&pool, user_id);
+                        match user_option {
+                            Some(mut user) => {
+                                return Some(_update_user_last_seen(
+                                    &pool,
+                                    user.clone(),
+                                    "".to_owned(),
+                                    user_agent.to_owned(),
+                                    real_remote_addy.to_owned(),
+                                ));
+                            }
+                            None => {}}
+                        }
+                    }
+                    None => {}}
+                }
+                Err( _err ) => {
+
+                }
+
+            }
 
     return None;
 }

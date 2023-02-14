@@ -1,3 +1,4 @@
+use actix_session::Session;
 use actix_web::web::Json;
 use actix_web::{
     post,
@@ -30,6 +31,7 @@ pub async fn api_admin_game_data_get(
     pool: Data<Pool>,
     form: Json<FetchAdminParameters>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<GameDataRow>> {
     let table = path.into_inner().0.to_string();
     // println!("api_admin_game_data_get table {}", table);
@@ -49,7 +51,7 @@ pub async fn api_admin_game_data_get(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {
@@ -70,6 +72,7 @@ pub async fn api_admin_game_data_paging(
     pool: Data<Pool>,
     form: Json<FetchAdminParameters>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<AdminPagingStatistics> {
     let table = path.into_inner().0.to_string();
     // println!("api_admin_game_data_paging table {}", table);
@@ -88,7 +91,7 @@ pub async fn api_admin_game_data_paging(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     let needs_book_list = form.needs_book_list;
 
@@ -118,6 +121,7 @@ pub async fn api_admin_game_data_save(
     pool: Data<Pool>,
     form: Json<AdminSavePackage>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<AdminSaveReturn> {
     let table = path.into_inner().0.to_string();
     // println!("api_admin_game_data_save table {}", table);
@@ -136,7 +140,7 @@ pub async fn api_admin_game_data_save(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     // let needs_book_list = form.needs_book_list;
     // println!("needs_book_list {}", needs_book_list);
@@ -267,6 +271,7 @@ pub async fn api_admin_game_data_delete(
     pool: Data<Pool>,
     form: Json<AdminDeletePackage>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<AdminSaveReturn> {
     let table = path.into_inner().0.to_string();
     println!("api_admin_game_data_delete table {}", table);
@@ -288,7 +293,7 @@ pub async fn api_admin_game_data_delete(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {

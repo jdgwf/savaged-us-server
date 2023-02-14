@@ -2,6 +2,7 @@ use crate::{
     api::auth::ApiKeyOrToken,
     db::{game_data::get_game_data_package, users::get_remote_user},
 };
+use actix_session::Session;
 use actix_web::{get, post, web::Data, web::Json, HttpRequest};
 use mysql::Pool;
 use savaged_libs::player_character::game_data_package::GameDataPackage;
@@ -11,6 +12,7 @@ pub async fn api_game_data_get(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<GameDataPackage> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -32,14 +34,14 @@ pub async fn api_game_data_get(
     // println!("api_key {:?}", api_key);
     // println!("login_token {:?}", login_token);
 
-    let current_user = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     let mut access_registered = false;
     let mut access_wildcard = false;
     let mut access_developer = false;
     let mut access_admin = false;
 
-    match current_user {
+    match user_option {
         Some(user) => {
             access_registered = true;
 

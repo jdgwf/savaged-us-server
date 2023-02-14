@@ -309,7 +309,7 @@ async fn yew_render(
         Ok( user_id_option ) => {
             match user_id_option {
                 Some( user_id ) => {
-                    println!("SESSION value: {}", user_id);
+                    // println!("yew_render SESSION value: {}", user_id);
                     session_user_id = user_id;
                 }
                 None => {}
@@ -317,11 +317,11 @@ async fn yew_render(
 
         }
         Err( err ) => {
-            println!("Session Error {}", err);
+            println!("yew_render Session Error {}", err);
         }
     }
 
-    let user = get_user( &pool, session_user_id );
+    // let user = get_user( &pool, session_user_id );
 
     let content = spawn_blocking(move || {
         use tokio::runtime::Builder;
@@ -343,7 +343,8 @@ async fn yew_render(
                     session_user_id
                 );
 
-                web_content.user = user;
+                // println!("yew_render user {:?}", web_content.user);
+                // web_content.user = user;
 
                 ServerAppProps {
                     url: AttrValue::from(url.clone()),
@@ -367,6 +368,7 @@ async fn yew_render(
 
     let index_html_after = index_html_after.to_owned();
 
+    // println!("yew_render pre-rendering");
     HttpResponse::Ok()
         .content_type("text/html; charset=utf-8")
         .body(format!(

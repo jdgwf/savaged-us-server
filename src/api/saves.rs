@@ -1,3 +1,4 @@
+use actix_session::Session;
 // use mysql::*;
 // use mysql::prelude::*;
 use mysql::Pool;
@@ -43,6 +44,7 @@ pub async fn auth_get_user_saves(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<SaveDBRow>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -62,9 +64,9 @@ pub async fn auth_get_user_saves(
     // println!("api_key {:?}", api_key);
     // println!("login_token {:?}", login_token);
 
-    let user = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
-    match user {
+    match user_option {
         Some(user) => {
             let saves = get_user_saves(&pool, user.id, None, false);
             return Json(saves);

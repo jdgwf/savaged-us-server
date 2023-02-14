@@ -1,3 +1,4 @@
+use actix_session::Session;
 use mysql::prelude::*;
 use mysql::*;
 
@@ -16,6 +17,7 @@ pub async fn api_notifications_get(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<Notification>> {
     // println!("notifications_get");
     let mut login_token: Option<String> = None;
@@ -33,9 +35,9 @@ pub async fn api_notifications_get(
         None => {}
     }
 
-    let current_user = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
-    match current_user {
+    match user_option {
         Some(user) => {
             return Json(get_notifications_for_user(&pool, user.id));
         }
@@ -58,6 +60,7 @@ pub async fn api_notifications_set_deleted(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<Notification>> {
     // println!("notifications_set_deleted");
     let mut login_token: Option<String> = None;
@@ -84,9 +87,9 @@ pub async fn api_notifications_set_deleted(
         None => {}
     }
 
-    let current_user = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
-    match current_user {
+    match user_option {
         Some(user) => {
             // println!("notifications_set_deleted notification_id: {}", notification_id);
             match pool.get_conn() {
@@ -134,6 +137,7 @@ pub async fn api_notifications_set_read(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<Notification>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -177,9 +181,9 @@ pub async fn api_notifications_set_read(
         None => {}
     }
 
-    let current_user = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
-    match current_user {
+    match user_option {
         Some(user) => {
             // println!("notifications_set_read notification_id: {}", notification_id);
             // println!("notifications_set_read read: {}", read);
@@ -229,6 +233,7 @@ pub async fn api_notifications_set_all_read(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<Notification>> {
     // println!("notifications_set_read");
     let mut login_token: Option<String> = None;
@@ -246,9 +251,9 @@ pub async fn api_notifications_set_all_read(
         None => {}
     }
 
-    let current_user = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
-    match current_user {
+    match user_option {
         Some(user) => {
             match pool.get_conn() {
                 Ok(mut conn) => {
@@ -346,6 +351,7 @@ pub async fn api_notifications_delete_basic_admin(
     pool: Data<Pool>,
     form: Json<NotificationForm>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<Notification>> {
     // println!("notifications_set_read");
     let mut login_token: Option<String> = None;
@@ -363,9 +369,9 @@ pub async fn api_notifications_delete_basic_admin(
         None => {}
     }
 
-    let current_user = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
-    match current_user {
+    match user_option {
         Some(user) => {
             match pool.get_conn() {
                 Ok(mut conn) => {

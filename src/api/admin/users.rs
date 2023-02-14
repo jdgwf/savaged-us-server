@@ -1,3 +1,4 @@
+use actix_session::Session;
 use mysql::Pool;
 
 use actix_web::{post, web::Data, web::Json, HttpRequest};
@@ -13,6 +14,7 @@ pub async fn api_admin_users_get(
     pool: Data<Pool>,
     form: Json<FetchAdminParameters>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<User>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -28,7 +30,7 @@ pub async fn api_admin_users_get(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {
@@ -47,6 +49,7 @@ pub async fn api_admin_users_paging(
     pool: Data<Pool>,
     form: Json<FetchAdminParameters>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<AdminPagingStatistics> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -62,7 +65,7 @@ pub async fn api_admin_users_paging(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {

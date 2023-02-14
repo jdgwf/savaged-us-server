@@ -1,6 +1,7 @@
 use actix_easy_multipart::tempfile::Tempfile;
 use actix_easy_multipart::text::Text;
 use actix_easy_multipart::MultipartForm;
+use actix_session::Session;
 use mysql::Pool;
 use savaged_libs::user::ImageUpdateResult;
 use std::fs;
@@ -16,6 +17,7 @@ use actix_web::{
     web::Json,
 };
 
+use crate::db::users::get_user;
 use crate::utils::encrypt_password;
 use crate::utils::image_to_webp;
 use crate::utils::resize_image_max;
@@ -34,6 +36,7 @@ pub async fn api_user_save_username(
     pool: Data<Pool>,
     form: Json<UserNameForm>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<bool> {
     // println!("api_user_save_username called");
 
@@ -59,7 +62,8 @@ pub async fn api_user_save_username(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {
@@ -87,6 +91,7 @@ pub async fn api_user_username_available(
     pool: Data<Pool>,
     form: Json<UserNameForm>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<bool> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -110,7 +115,9 @@ pub async fn api_user_username_available(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+
+
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {
@@ -135,6 +142,7 @@ pub async fn api_user_token_update_name(
     pool: Data<Pool>,
     form: Json<UpdateTokenNameForm>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<LoginToken>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -165,7 +173,9 @@ pub async fn api_user_token_update_name(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+
+
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {
@@ -202,12 +212,15 @@ pub async fn api_user_update_settings(
     pool: Data<Pool>,
     form: Json<UpdateSettingData>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<UserUpdateResult> {
     let mut return_value: UserUpdateResult = UserUpdateResult {
         success: false,
         password_changed: false,
         message: "".to_string(),
     };
+
+
 
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -225,7 +238,7 @@ pub async fn api_user_update_settings(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {
@@ -333,6 +346,7 @@ pub async fn api_user_token_remove(
     pool: Data<Pool>,
     form: Json<UpdateTokenNameForm>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<Vec<LoginToken>> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -363,7 +377,8 @@ pub async fn api_user_token_remove(
     //     None => {}
     // }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {
@@ -400,6 +415,7 @@ pub async fn api_user_set_user_image_data(
     pool: Data<Pool>,
     form: MultipartForm<ImageDataForm>,
     request: HttpRequest,
+    session: Session,
 ) -> Json<ImageUpdateResult> {
     let mut rv: ImageUpdateResult = ImageUpdateResult {
         success: false,
@@ -407,23 +423,21 @@ pub async fn api_user_set_user_image_data(
         image_url: "".to_owned(),
     };
 
-    let mut login_token: Option<String> = None;
-    let mut api_key: Option<String> = None;
+
+    let content_type = form
+        .image
+        .content_type
+        .as_ref()
+        .map(|m| m.as_ref())
+        .unwrap_or("null");
+    // let file_name = form
+    //     .image
+    //     .file_name
+    //     .as_ref()
+    //     .map(|m| m.as_ref())
+    //     .unwrap_or("null");
     let mut upload_type: String = "".to_string();
     let mut crop_square: bool = false;
-
-    match &form.login_token {
-        Some(val) => {
-            login_token = Some(val.as_str().to_owned());
-        }
-        None => {}
-    }
-    match &form.api_key {
-        Some(val) => {
-            api_key = Some(val.as_str().to_owned());
-        }
-        None => {}
-    }
     match &form.upload_type {
         Some(val) => {
             upload_type = val.as_str().to_owned();
@@ -439,20 +453,25 @@ pub async fn api_user_set_user_image_data(
         None => {}
     }
 
-    let content_type = form
-        .image
-        .content_type
-        .as_ref()
-        .map(|m| m.as_ref())
-        .unwrap_or("null");
-    // let file_name = form
-    //     .image
-    //     .file_name
-    //     .as_ref()
-    //     .map(|m| m.as_ref())
-    //     .unwrap_or("null");
+    let mut login_token: Option<String> = None;
+    let mut api_key: Option<String> = None;
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request);
+    match &form.login_token {
+        Some(val) => {
+            login_token = Some(val.as_str().to_owned());
+        }
+        None => {}
+    }
+    match &form.api_key {
+        Some(val) => {
+            api_key = Some(val.as_str().to_owned());
+        }
+        None => {}
+    }
+
+
+
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
         Some(user) => {
