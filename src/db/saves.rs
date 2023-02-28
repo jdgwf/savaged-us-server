@@ -68,7 +68,19 @@ pub fn get_user_saves(
         "
     );
 
-    let data_params = params! { "user_id" => user_id};
+
+    let mut data_params = params! { "user_id" => user_id};
+    match updated_on {
+        Some( updated_on_dt ) => {
+            data_query = format!("{}\n  AND `updated_on` > :updated_on", data_query, );
+            data_params = params! { "user_id" => user_id, "updated_on" => updated_on_dt.to_string(), };
+        }
+        None => {}
+    }
+
+    // println!("get_user_saves data_query{}", data_query);
+
+
     // let data_params = params!{ "1" => "1"};
 
     // println!("data_query {}", &data_query);

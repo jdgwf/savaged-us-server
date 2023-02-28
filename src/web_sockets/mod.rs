@@ -3,6 +3,8 @@ pub mod lobby;
 mod messages;
 pub mod web_socket_router;
 
+use crate::db::users::get_user;
+
 use self::lobby::Lobby;
 use self::messages::{Connect, Disconnect, WsMessage, ClientActorMessage};
 use actix::ActorContext;
@@ -93,6 +95,34 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
         msg: Result<ws::Message, ws::ProtocolError>,
         ctx: &mut Self::Context,
     ) {
+
+
+        if self.user == None {
+            let session_result= self.session.get::<u32>("user_id");
+
+            println!("handle {:?}", self.session.get::<u32>("user_id"));
+            // let mut user_id  = 0;
+            match session_result {
+                Ok( user_id_option ) => {
+                    match user_id_option {
+                        Some( user_id ) => {
+                            println!("web_socket_router handle session value: {}", user_id);
+                            // session_user_id = user_id;
+                            // session.insert("web_socket_router user_id", login_results.user_id);
+                            self.user = get_user( &self.pool, user_id);
+                        }
+                        None => {
+                            // session.insert("user_id", login_results.user_id);
+                            // println!("web_socket_router handle session value: None");
+                        }
+                    }
+
+                }
+                Err( err ) => {
+                    println!("Session Error {}", err);
+                }
+            }
+        }
         match msg {
             Ok(actix_web_actors::ws::Message::Continuation(_)) => {}
             Ok(actix_web_actors::ws::Message::Nop) => {}
@@ -157,6 +187,10 @@ impl ServerWebsocket {
     ) -> ServerWebsocket {
         let conn_info = req.connection_info();
 
+        let session_result= session.get::<u32>("user_id");
+
+        println!("ServerWebsocket new {:?}", session.get::<u32>("user_id"));
+
         let mut real_remote_addy = "".to_string();
         let mut user_agent = "".to_string();
         let mut x_forwarded_for = "".to_string();
@@ -189,6 +223,10 @@ impl ServerWebsocket {
             real_remote_addy = x_forwarded_for;
         }
 
+        let session_result= session.get::<u32>("user_id");
+
+        println!("ServerWebsocket new session.entries {:?}", session.entries());
+        println!("WebSocket new session_result {:?}", session_result.unwrap());
         ServerWebsocket {
             id: Uuid::new_v4(),
             user: user,

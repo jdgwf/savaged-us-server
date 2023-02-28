@@ -62,7 +62,6 @@ pub async fn api_user_save_username(
         None => {}
     }
 
-
     let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
@@ -114,8 +113,6 @@ pub async fn api_user_username_available(
         }
         None => {}
     }
-
-
 
     let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
@@ -173,8 +170,6 @@ pub async fn api_user_token_update_name(
         None => {}
     }
 
-
-
     let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
@@ -219,8 +214,6 @@ pub async fn api_user_update_settings(
         password_changed: false,
         message: "".to_string(),
     };
-
-
 
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
@@ -377,7 +370,6 @@ pub async fn api_user_token_remove(
     //     None => {}
     // }
 
-
     let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 
     match user_option {
@@ -423,7 +415,6 @@ pub async fn api_user_set_user_image_data(
         image_url: "".to_owned(),
     };
 
-
     let content_type = form
         .image
         .content_type
@@ -468,8 +459,6 @@ pub async fn api_user_set_user_image_data(
         }
         None => {}
     }
-
-
 
     let user_option = get_remote_user(&pool, api_key, login_token, request, session);
 

@@ -56,6 +56,13 @@ pub fn get_books(
     }
     data_query += format!(" ) or  `books`.`created_by` like {})", current_user_id).as_ref();
 
+
+    match updated_on {
+        Some( updated_date_string ) => {
+            data_query = format!("{}\n  AND `updated_on` > '{}'", data_query, updated_date_string);
+        }
+        None => {}
+    }
     // println!("{}", data_query);
     match pool.get_conn() {
         Ok(mut conn) => {

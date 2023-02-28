@@ -2,8 +2,12 @@ mod api;
 mod db;
 extern crate dotenv;
 use actix::Actor;
+use actix_session::config::CookieContentSecurity;
+use actix_session::config::PersistentSession;
 use actix_session::storage::SessionKey;
+use actix_web::FromRequest;
 use actix_web::body::MessageBody;
+use actix_web::cookie::time;
 use actix_web::http::header;
 use actix_web::HttpRequest;
 use actix_web::web;
@@ -27,6 +31,7 @@ use db::banners::get_active_banners;
 use api::auth::{
     api_auth_get_user_data,
     api_auth_login,
+    api_logout,
     api_auth_login_for_token,
 };
 
@@ -41,7 +46,7 @@ use api::notifications::{
     api_notifications_delete_basic_admin, api_notifications_get, api_notifications_set_all_read,
     api_notifications_set_deleted, api_notifications_set_read,
 };
-use api::saves::auth_get_user_saves;
+use api::saves::api_saves_get;
 
 use api::admin::users::{api_admin_users_get, api_admin_users_paging};
 
@@ -50,7 +55,9 @@ use api::admin::game_data::{
     api_admin_game_data_save,
 };
 
-use api::data::game_data::api_game_data_get;
+use api::data::game_data::{
+    api_game_data_get,
+};
 // use api::data::books::books_get;
 
 use api::banners::api_banners_get;
@@ -155,7 +162,6 @@ async fn main() -> std::io::Result<()> {
         Err(_) => {}
     };
 
-
     let mut db_conn_url = format!(
         "mysql://{}:{}@{}:{}/{}",
         db_user, db_password, db_host, db_port, db_database,
@@ -171,8 +177,6 @@ async fn main() -> std::io::Result<()> {
             db_database,
         );
     }
-
-
 
     // let mysql_connection_pool;
 
@@ -193,10 +197,18 @@ async fn main() -> std::io::Result<()> {
                     let mysql_connection_pool = pool.clone();
                     let chat_server = Lobby::default().start(); //create and spin up a lobby
 
+
+
                     env_logger::init();
 
                     println!("Running on http://{}:{}", serve_ip, serve_port);
                     HttpServer::new(move || {
+
+                        // let session_middleware = SessionMiddleware::new(
+                        //     CookieSessionStore::default(),
+                        //     cookie_secret_key.clone()
+                        // );
+
                         let logger = Logger::default();
                         // let cors = Cors::permissive().allowed_header(header::CONTENT_TYPE);
                         let cors = Cors::default()
@@ -212,29 +224,41 @@ async fn main() -> std::io::Result<()> {
                             .allowed_headers(vec![header::AUTHORIZATION, header::ACCEPT])
                             .allowed_header(header::CONTENT_TYPE)
                             .max_age(3600);
+
                         App::new()
-                            .wrap(logger)
-                            .wrap(cors)
+                            // .wrap( session_middleware )
                             .wrap(
-                                SessionMiddleware::new(
+                                SessionMiddleware::builder(
                                     CookieSessionStore::default(),
                                     cookie_secret_key.clone()
+                                )// .cookie_secure(true)
+                                 .cookie_path("/".to_owned())
+                                 .session_lifecycle(
+                                    PersistentSession::default()
+                                        .session_ttl(time::Duration::days(365))
                                 )
+                                 .cookie_name("savaged_session".to_owned())
+                                //  .cookie_content_security(CookieContentSecurity::Private)
+                                //  .cookie_same_site(actix_web::cookie::SameSite::None)
+                                 .build(),
                             )
-                            // .app_data(ApiError::json_error(JsonConfig::default()))
+                            .wrap( logger )
+                            .wrap( cors )
+
                             .app_data(Data::new(mysql_connection_pool.clone()))
                             .app_data(Data::new(chat_server.clone()))
-                            // .route(
-                            //     "/_ws",
-                            //     actix_web::web::get().to(start_websocket_connection)
-                            // )
+
                             .service(web_socket_router)
+
                             // Authentication Handlers
                             .service(api_auth_login_for_token)
                             .service(api_auth_login)
                             .service(api_auth_get_user_data)
+                            .service( api_logout )
+
                             // Saves Handlers
-                            .service(auth_get_user_saves)
+                            .service(api_saves_get)
+
                             // User Settings
                             .service(api_user_token_remove)
                             .service(api_user_token_update_name)
@@ -242,12 +266,14 @@ async fn main() -> std::io::Result<()> {
                             .service(api_user_save_username)
                             .service(api_user_username_available)
                             .service(api_user_set_user_image_data)
+
                             // User Notification Page Handlers
                             .service(api_notifications_set_deleted)
                             .service(api_notifications_set_read)
                             .service(api_notifications_get)
                             .service(api_notifications_delete_basic_admin)
                             .service(api_notifications_set_all_read)
+
                             // Data Endpoints
                             // .service( hindrances_get )
                             // .service( books_get )
@@ -261,6 +287,7 @@ async fn main() -> std::io::Result<()> {
                             .service(api_admin_game_data_paging)
                             .service(api_admin_game_data_save)
                             .service(api_admin_game_data_delete)
+
                             // render yew app SSR.
                             .service(
                                 actix_web::web::resource(
@@ -298,26 +325,33 @@ async fn yew_render(
     pool: Data<Pool>,
     request: HttpRequest,
     session: Session,
+    // payload: &mut actix_web::dev::Payload,
 ) -> HttpResponse {
     let url = request.uri().to_string();
 
-
+    // let mut payload = actix_web::dev::Payload::None;
+    // let s = actix_session::Session::from_request(&request, &mut payload);
+    // let session = s.into_inner().unwrap();
     let mut session_user_id: u32 = 0;
+
     let session_result= session.get::<u32>("user_id");
 
     match session_result {
         Ok( user_id_option ) => {
             match user_id_option {
                 Some( user_id ) => {
-                    // println!("yew_render SESSION value: {}", user_id);
+                    println!("yew_render SESSION value: {}", user_id);
                     session_user_id = user_id;
                 }
-                None => {}
+                None => {
+                    let _ = session.insert("user_id", 0);
+                }
             }
 
         }
         Err( err ) => {
             println!("yew_render Session Error {}", err);
+            let _ = session.insert("user_id", 0);
         }
     }
 
@@ -328,8 +362,6 @@ async fn yew_render(
         let set = LocalSet::new();
 
         let rt = Builder::new_current_thread().enable_all().build().unwrap();
-
-
 
         set.block_on(&rt, async {
             // let server_renderer = ServerRenderer::<ServerApp>::new();
@@ -343,7 +375,8 @@ async fn yew_render(
                     session_user_id
                 );
 
-                // println!("yew_render user {:?}", web_content.user);
+                // println!("yew_render session_user_id {:?}", session_user_id);
+                // println!("yew_render user {:?}", &web_content.user);
                 // web_content.user = user;
 
                 ServerAppProps {

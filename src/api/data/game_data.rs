@@ -1,13 +1,14 @@
 use crate::{
     api::auth::ApiKeyOrToken,
-    db::{game_data::get_game_data_package, users::get_remote_user},
+    db::{game_data::get_game_data_package, users::get_remote_user, saves::get_user_saves},
 };
 use actix_session::Session;
 use actix_web::{get, post, web::Data, web::Json, HttpRequest};
 use mysql::Pool;
-use savaged_libs::player_character::game_data_package::GameDataPackage;
+use savaged_libs::{player_character::game_data_package::GameDataPackage, save_db_row::SaveDBRow};
 
-#[post("/_api/game-data-get")]
+
+#[post("/_api/game-data/get")]
 pub async fn api_game_data_get(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
@@ -16,6 +17,9 @@ pub async fn api_game_data_get(
 ) -> Json<GameDataPackage> {
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
+
+    println!("api_game_data_get session.entries {:?}", &session.entries());
+
     match &form.login_token {
         Some(val) => {
             login_token = Some(val.to_owned());
@@ -58,10 +62,12 @@ pub async fn api_game_data_get(
         None => {}
     }
 
+    // println!("XXXXXXX api_game_data_get {:?}", form.last_updated);
+
     let game_data = get_game_data_package(
         &pool,
         0,
-        None,
+        form.last_updated,
         access_registered,
         access_wildcard,
         access_developer,

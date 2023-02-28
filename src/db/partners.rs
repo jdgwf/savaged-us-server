@@ -23,9 +23,10 @@ pub fn get_active_partners(pool: &Data<Pool>) -> Vec<SimplePartner> {
                     return partner;
                 },
             );
+
             match get_partners_result {
                 Ok(get_partners) => {
-                    println!("get_active_partners {}", get_partners.len());
+                    // println!("get_active_partners {}", get_partners.len());
                     return get_partners;
                 }
 

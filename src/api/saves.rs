@@ -40,7 +40,7 @@ use super::super::db::users::get_remote_user;
 // use derive_more::{Display};
 
 #[post("/_api/saves/get")]
-pub async fn auth_get_user_saves(
+pub async fn api_saves_get(
     pool: Data<Pool>,
     form: Json<ApiKeyOrToken>,
     request: HttpRequest,
@@ -61,6 +61,9 @@ pub async fn auth_get_user_saves(
         None => {}
     }
 
+
+
+    println!("api_saves_get session.entries {:?}", &session.entries());
     // println!("api_key {:?}", api_key);
     // println!("login_token {:?}", login_token);
 
@@ -68,7 +71,7 @@ pub async fn auth_get_user_saves(
 
     match user_option {
         Some(user) => {
-            let saves = get_user_saves(&pool, user.id, None, false);
+            let saves = get_user_saves(&pool, user.id, form.last_updated, false);
             return Json(saves);
         }
 

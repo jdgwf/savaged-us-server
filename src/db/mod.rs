@@ -15,7 +15,6 @@ pub mod partners;
 pub mod help_articles;
 use actix_web::web::Data;
 
-
 pub fn get_web_content(pool: &Data<Pool>) -> WebContent {
     let banners = Some(get_active_banners(pool));
     let help_articles = Some(get_active_help_articles(pool));

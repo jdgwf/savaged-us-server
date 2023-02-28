@@ -1,4 +1,7 @@
 use actix_session::Session;
+use actix_web::FromRequest;
+use chrono::DateTime;
+use chrono::Utc;
 // use mysql::*;
 // use mysql::prelude::*;
 use mysql::Pool;
@@ -165,17 +168,21 @@ pub async fn api_auth_login_for_token(
 
 }
 
-
 #[post("/_api/auth/login")]
 pub async fn api_auth_login(
     pool: Data<Pool>,
     form: Json<LoginForm>,
     request: HttpRequest,
     session: Session,
+    // payload: mut actix_web::dev::Payload,
 ) -> Json<LoginTokenResult> {
     let conn_info = request.connection_info();
 
-    // println!("api_auth_login called");
+    // let mut payload = actix_web::dev::Payload::None;
+    // let s = actix_session::Session::from_request(&request, &mut payload);
+
+    // let session = s.into_inner().unwrap();
+    // println!("api_auth_login session.entries {:?}", session.entries());
     let mut real_remote_addy = "".to_string();
     let mut user_agent = "".to_string();
     let mut x_forwarded_for = "".to_string();
@@ -229,34 +236,37 @@ pub async fn api_auth_login(
     );
 
     if login_results.user_id > 0 {
-        match session.insert("user_id", login_results.user_id) {
+        let session_result = session.insert("user_id", login_results.user_id);
+        match session_result {
             Ok(_) => {
-                println!("api_auth_login Session ID set {}", login_results.user_id);
+                // println!("api_auth_login Session ID set {}", login_results.user_id);
             }
             Err(err) => {
-                println!("api_auth_login error setting session user {:?}", err);
+                // println!("api_auth_login error setting session user {:?}", err);
+                let _ = session.insert("user_id", 0);
             }
         }
 
         let user_result = get_user(&pool, login_results.user_id);
         match user_result {
             Some(user) => {
+                // println!("api_auth_login Session ID set 2 {}", user.id);
                 rv.success = true;
                 rv.login_token = "".to_owned();
                 rv.user = user.clone();
                 rv.user.get_image("");
                 rv.registered = user.created_on.clone();
             }
-            None => {}
+            None => {
+                let _ = session.insert("user_id", 0);
+            }
         }
 
     }
-
+    // println!("api_auth_login session.entries #2 {:?}", session.entries());
     return Json(rv);
 
 }
-
-
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct ApiKeyOrToken {
@@ -264,6 +274,20 @@ pub struct ApiKeyOrToken {
     pub api_key: Option<String>,
     #[serde(default)]
     pub login_token: Option<String>,
+
+    #[serde(default)]
+    pub last_updated: Option<DateTime<Utc>>,
+}
+
+#[post("/_api/auth/logout")]
+pub async fn api_logout(
+    _pool: Data<Pool>,
+    _form: Json<ApiKeyOrToken>,
+    _request: HttpRequest,
+    session: Session,
+) -> Json<bool> {
+    let _ = session.insert("user_id", 0);
+    return Json(true);
 }
 
 #[post("/_api/auth/get-user-data")]
@@ -276,17 +300,15 @@ pub async fn api_auth_get_user_data(
     let mut login_token: Option<String> = None;
     let mut api_key: Option<String> = None;
 
-
-
     let session_result= session.get::<u32>("user_id");
 
-    // println!("web_socket_router");
+    // println!("XXXX api_auth_get_user_data {:?}", session_result );
 
     match session_result {
         Ok( user_id_option ) => {
             match user_id_option {
                 Some( user_id ) => {
-                    // println!("web_socket_router SESSION value: {}", user_id);
+                    // println!("api_auth_get_user_data SESSION user_id: {}", user_id);
                     // session_user_id = user_id;
                     // session.insert("user_id", login_results.user_id);
                     return Json(get_user(&pool, user_id));
@@ -301,7 +323,6 @@ pub async fn api_auth_get_user_data(
             println!("Session Error {}", err);
         }
     }
-
 
     match &form.login_token {
         Some(val) => {

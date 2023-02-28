@@ -122,6 +122,15 @@ pub fn get_game_data_table_data(
             data_query = data_query + &" 99999999) ";
         }
     }
+
+    match updated_on {
+        Some( updated_date_string ) => {
+            data_query = format!("{}\n  AND `updated_on` > '{}'", data_query, updated_date_string);
+        }
+        None => {}
+    }
+
+    // println!("get_game_data_table_data data_query{}", data_query);
     // let data_params = params!{ "user_id" => user_id};
     // let data_params = params!{ "1" => "1"};
     match pool.get_conn() {
@@ -172,6 +181,7 @@ pub fn get_game_data_table_data(
             );
             match get_row_data_result {
                 Ok(get_row_data) => {
+                    println!("get_game_data_table_data {} get_row_data len {}", &table_name, get_row_data.len());
                     return get_row_data;
                 }
 

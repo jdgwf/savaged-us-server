@@ -19,30 +19,8 @@ pub async fn web_socket_router(
     let mut user = get_user_from_login_token(&pool, None, req.clone());
 
 
-    let session_result= session.get::<u32>("user_id");
-
     println!("web_socket_router");
 
-    match session_result {
-        Ok( user_id_option ) => {
-            match user_id_option {
-                Some( user_id ) => {
-                    println!("web_socket_router SESSION value: {}", user_id);
-                    // session_user_id = user_id;
-                    // session.insert("web_socket_router user_id", login_results.user_id);
-                    user = get_user(&pool, user_id);
-                }
-                None => {
-                    // session.insert("user_id", login_results.user_id);
-                    println!("web_socket_router SESSION value: None");
-                }
-            }
-
-        }
-        Err( err ) => {
-            println!("Session Error {}", err);
-        }
-    }
 
     let ws = ServerWebsocket::new(
         user,

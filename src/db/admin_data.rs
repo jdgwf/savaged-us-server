@@ -476,7 +476,6 @@ pub fn db_admin_get_game_data(
     //      "1" => 1
     // };
 
-
     data_query = data_query
         + admin_filter_where_clause(DATA_SEARCH_FIELDS, &paging_params, false, true).as_str();
 
