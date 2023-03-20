@@ -80,6 +80,9 @@ use crate::db::users::get_user;
 use crate::web_sockets::lobby::Lobby;
 use crate::web_sockets::web_socket_router::web_socket_router;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+
 pub const CONFIG_ALLOWED_IMAGE_TYPES: &'static [&'static str] =
     &["image/jpeg", "image/jpg", "image/png", "image/webp"];
 
@@ -201,7 +204,7 @@ async fn main() -> std::io::Result<()> {
 
                     env_logger::init();
 
-                    println!("Running on http://{}:{}", serve_ip, serve_port);
+                    println!("Version {} running on http://{}:{}", VERSION, serve_ip, serve_port);
                     HttpServer::new(move || {
 
                         // let session_middleware = SessionMiddleware::new(
