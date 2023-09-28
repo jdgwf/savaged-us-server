@@ -2,7 +2,7 @@ use actix_easy_multipart::tempfile::Tempfile;
 use actix_easy_multipart::text::Text;
 use actix_easy_multipart::MultipartForm;
 use actix_session::Session;
-use mysql::Pool;
+use mysql_async::Pool;
 use savaged_libs::user::ImageUpdateResult;
 use std::fs;
 use std::path::Path;
@@ -62,12 +62,12 @@ pub async fn api_user_save_username(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
             // println!("api_user_username_available called {}", &username);
-            let result_count = save_username(&pool, user, username.clone());
+            let result_count = save_username(&pool, user, username.clone()).await;
             // println!("api_user_username_available result {}", &result_count);
             if result_count == 1 {
                 return Json(true);
@@ -114,12 +114,12 @@ pub async fn api_user_username_available(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
             // println!("api_user_username_available called {}", &username);
-            return Json(username_available(&pool, user, username.clone()));
+            return Json(username_available(&pool, user, username.clone()).await);
         }
         None => {}
     }
@@ -170,7 +170,7 @@ pub async fn api_user_token_update_name(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
@@ -231,7 +231,7 @@ pub async fn api_user_update_settings(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
@@ -309,7 +309,7 @@ pub async fn api_user_update_settings(
                             );
                         }
 
-                        let rows_affected = update_user(&pool, user_settings.clone());
+                        let rows_affected = update_user(&pool, user_settings.clone()).await;
 
                         if rows_affected == 1 {
                             return_value.success = true;
@@ -370,7 +370,7 @@ pub async fn api_user_token_remove(
     //     None => {}
     // }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
@@ -460,7 +460,7 @@ pub async fn api_user_set_user_image_data(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {

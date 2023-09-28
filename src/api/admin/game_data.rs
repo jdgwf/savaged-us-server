@@ -5,7 +5,7 @@ use actix_web::{
     web::{self, Data},
     HttpRequest,
 };
-use mysql::Pool;
+use mysql_async::Pool;
 use savaged_libs::alert_level::AlertLevel;
 use savaged_libs::utils::string_manipulation::uppercase_first;
 use savaged_libs::{
@@ -51,12 +51,12 @@ pub async fn api_admin_game_data_get(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
             if user.has_developer_access() {
-                let game_data = db_admin_get_game_data(&pool, table, form);
+                let game_data = db_admin_get_game_data(&pool, table, form).await;
                 return Json(game_data);
             }
         }
@@ -91,16 +91,16 @@ pub async fn api_admin_game_data_paging(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     let needs_book_list = form.needs_book_list;
 
     match user_option {
         Some(user) => {
             if user.has_developer_access() {
-                let mut val = db_admin_get_game_data_paging_data(&pool, table, form);
+                let mut val = db_admin_get_game_data_paging_data(&pool, table, form).await;
                 if needs_book_list {
-                    val.book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
+                    val.book_list = Some(get_books(&pool, 0, None, true, true, true, true, true).await);
                 }
                 return Json(val);
             }
@@ -140,16 +140,16 @@ pub async fn api_admin_game_data_save(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     // let needs_book_list = form.needs_book_list;
     // println!("needs_book_list {}", needs_book_list);
     match user_option {
         Some(user) => {
             if user.has_developer_access() {
-                let book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
+                let book_list = Some(get_books(&pool, 0, None, true, true, true, true, true).await);
 
-                let item_opt = db_admin_admin_get_item(&pool, table.to_owned(), form.id);
+                let item_opt = db_admin_admin_get_item(&pool, table.to_owned(), form.id).await;
 
                 match item_opt {
                     Some(item) => {
@@ -176,7 +176,7 @@ pub async fn api_admin_game_data_save(
                                     &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
-                                )),
+                                ).await),
                             });
                         } else {
                             return Json(AdminSaveReturn {
@@ -187,7 +187,7 @@ pub async fn api_admin_game_data_save(
                                     &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
-                                )),
+                                ).await),
                             });
                         }
                     }
@@ -214,7 +214,7 @@ pub async fn api_admin_game_data_save(
                                         &pool,
                                         table,
                                         Json(form.fetch_parameters.clone()),
-                                    )),
+                                    ).await),
                                 });
                             }
                             return Json(AdminSaveReturn {
@@ -225,7 +225,7 @@ pub async fn api_admin_game_data_save(
                                     &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
-                                )),
+                                ).await),
                             });
                         } else {
                             return Json(AdminSaveReturn {
@@ -236,7 +236,7 @@ pub async fn api_admin_game_data_save(
                                     &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
-                                )),
+                                ).await),
                             });
                         }
                     }
@@ -293,7 +293,7 @@ pub async fn api_admin_game_data_delete(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
@@ -305,9 +305,9 @@ pub async fn api_admin_game_data_delete(
                     game_data: None,
                 };
 
-                let book_list = Some(get_books(&pool, 0, None, true, true, true, true, true));
+                let book_list = Some(get_books(&pool, 0, None, true, true, true, true, true).await);
 
-                let item_opt = db_admin_admin_get_item(&pool, table.to_owned(), form.id);
+                let item_opt = db_admin_admin_get_item(&pool, table.to_owned(), form.id).await;
 
                 match item_opt {
                     Some(item) => {
@@ -328,7 +328,7 @@ pub async fn api_admin_game_data_delete(
                                 &pool,
                                 table,
                                 Json(form.fetch_parameters.clone()),
-                            ));
+                            ).await);
 
                             return Json(rv);
                         } else {
@@ -340,7 +340,7 @@ pub async fn api_admin_game_data_delete(
                                     &pool,
                                     table,
                                     Json(form.fetch_parameters.clone()),
-                                )),
+                                ).await),
                             });
                         }
                     }
@@ -353,7 +353,7 @@ pub async fn api_admin_game_data_delete(
                                 &pool,
                                 table,
                                 Json(form.fetch_parameters.clone()),
-                            )),
+                            ).await),
                         });
                     }
                 }

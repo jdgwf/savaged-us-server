@@ -1,6 +1,6 @@
 use crate::db::books::get_books;
 use actix_web::{get, web::Data, web::Json};
-use mysql::Pool;
+use mysql_async::Pool;
 use savaged_libs::book::Book;
 
 // #[get("/_api/books-get")]

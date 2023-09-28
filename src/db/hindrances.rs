@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use actix_web::web::Data;
-use mysql::prelude::*;
-use mysql::*;
+use mysql_async::prelude::*;
+use mysql_async::*;
 use savaged_libs::player_character::hindrance::Hindrance;
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -11,8 +11,8 @@ pub struct SmallHindrance {
     name: String,
     book_id: String,
 }
-pub fn get_hindrances(pool: &Data<Pool>) -> Vec<SmallHindrance> {
-    match pool.get_conn() {
+pub async fn get_hindrances(pool: &Data<Pool>) -> Vec<SmallHindrance> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_hindrances_result = conn.query_map(
                 "SELECT
@@ -29,7 +29,7 @@ pub fn get_hindrances(pool: &Data<Pool>) -> Vec<SmallHindrance> {
                     // let hindrance = Hindrance::default();
                     return hindrance;
                 },
-            );
+            ).await;
             match get_hindrances_result {
                 Ok(get_hindrances) => {
                     return get_hindrances;

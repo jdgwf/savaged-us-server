@@ -1,3 +1,4 @@
+use crate::db::users::get_remote_user;
 use super::{ServerWebsocket, messages::ClientActorMessage};
 use crate::{
     db::{
@@ -17,11 +18,12 @@ use savaged_libs::{
 };
 use tokio::task;
 
-pub fn handle_message(
+pub async fn handle_message(
     msg: WebSocketMessage,
     ctx: &mut ws::WebsocketContext<ServerWebsocket>,
     ws: &mut ServerWebsocket,
 ) {
+    println!("handle_message msg {:?}", msg);
     match msg.kind {
         WebsocketMessageType::SavesUpdated => {
             println!("handle_message Saves {:?}", msg);
@@ -48,53 +50,53 @@ pub fn handle_message(
             // println!("Saves {:?}", &ws.user);
             match ws.user.clone() {
                 Some(user) => {
-                    // let saves =
-                    //     get_user_saves(&&ws.pool, user.id, msg.updated_on, false);
+                    let saves =
+                        get_user_saves(&&ws.pool, user.id, msg.updated_on, false).await;
                     // for item in &saves {
                     //     if (&item.name).to_owned() == "Chi Master".to_owned() {
                     //         println!("saves item {:?}", item);
                     //     }
                     // }
-                    // msg_send.saves = Some(saves);
+                    msg_send.saves = Some(saves);
                 }
                 None => {}
             }
             send_message(msg_send, ctx);
         }
         WebsocketMessageType::GameDataPackageUpdated => {
-            // println!("handle_message GameDataPackageUpdated {:?}", msg);
+            println!("handle_message GameDataPackageUpdated {:?}", msg);
 
             let mut msg_send = WebSocketMessage::default();
             msg_send.kind = WebsocketMessageType::GameDataPackageUpdated;
 
 
-            println!("GameDataPackage {:?}", &ws.user);
-            // match ws.user.clone() {
-            //     Some(user) => {
-            //         msg_send.game_data = Some(get_game_data_package(
-            //             &&ws.pool,
-            //             user.id,
-            //             msg.updated_on,
-            //             true,
-            //             user.is_premium,   // access_wildcard,
-            //             user.is_developer, // access_developer,
-            //             user.is_admin,     // access_admin,
-            //             false,             // all
-            //         ));
-            //     }
-            //     None => {
-            //         msg_send.game_data = Some(get_game_data_package(
-            //             &&ws.pool,
-            //             0,
-            //             msg.updated_on,
-            //             false, // access_registered
-            //             false, // access_wildcard,
-            //             false, // access_developer,
-            //             false, // access_admin,
-            //             false, // all
-            //         ));
-            //     }
-            // }
+            // println!("GameDataPackage {:?}", &ws.user);
+            match ws.user.clone() {
+                Some(user) => {
+                    msg_send.game_data = Some(get_game_data_package(
+                        &&ws.pool,
+                        user.id,
+                        msg.updated_on,
+                        true,
+                        user.is_premium,   // access_wildcard,
+                        user.is_developer, // access_developer,
+                        user.is_admin,     // access_admin,
+                        false,             // all
+                    ).await);
+                }
+                None => {
+                    msg_send.game_data = Some(get_game_data_package(
+                        &&ws.pool,
+                        0,
+                        msg.updated_on,
+                        false, // access_registered
+                        false, // access_wildcard,
+                        false, // access_developer,
+                        false, // access_admin,
+                        false, // all
+                    ).await);
+                }
+            }
 
             send_message(msg_send, ctx);
         }
@@ -104,8 +106,11 @@ pub fn handle_message(
 
             msg_send.kind = WebsocketMessageType::Online;
             // send_message( msg_send, ctx );
-            msg_send.web_content = Some(get_web_content(&ws.pool));
+            msg_send.web_content = Some(get_web_content(&ws.pool).await);
+            // let mut user = get_remote_user(&&ws.pool, None, None, ws.req.clone(), ws.session.clone());
 
+
+            println!("handle_message online user {:?}", ws.user);
 
             match &ws.user {
                 Some(user) => {
@@ -126,7 +131,9 @@ pub fn handle_message(
                     //     }
                     // );
                 }
-                None => {}
+                None => {
+                    ws.user = None;
+                }
             }
 
             send_message(msg_send, ctx);
@@ -211,7 +218,7 @@ pub fn handle_message(
                         &ws.pool,
                         Some(msg_token.clone()),
                         ws.req.clone(),
-                    );
+                    ).await;
                     match user_option {
                         Some(user) => {
                             let mut login_tokens: Vec<LoginToken> = Vec::new();

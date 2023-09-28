@@ -1,5 +1,5 @@
 use actix_session::Session;
-use mysql::Pool;
+use mysql_async::Pool;
 
 use actix_web::{post, web::Data, web::Json, HttpRequest};
 use savaged_libs::{
@@ -30,12 +30,12 @@ pub async fn api_admin_users_get(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
             if user.has_admin_access() {
-                return Json(admin_get_users(&pool, form));
+                return Json(admin_get_users(&pool, form).await);
             }
         }
         None => {}
@@ -65,12 +65,12 @@ pub async fn api_admin_users_paging(
         }
         None => {}
     }
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
             if user.has_admin_access() {
-                return Json(admin_get_users_paging_data(&pool, form));
+                return Json(admin_get_users_paging_data(&pool, form).await);
             }
         }
         None => {}

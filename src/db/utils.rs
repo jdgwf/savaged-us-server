@@ -1,6 +1,6 @@
 use actix_web::{cookie::time::PrimitiveDateTime, web::Json};
 use chrono::prelude::*;
-use mysql::Row;
+use mysql_async::Row;
 use savaged_libs::admin_libs::FetchAdminParameters;
 
 pub fn mysql_row_to_chrono_utc(row: &mut Row, field_name: &str) -> Option<DateTime<Utc>> {

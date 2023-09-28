@@ -4,8 +4,8 @@ use super::utils::admin_current_limit_paging_sql;
 use crate::db::utils::{admin_filter_where_clause, mysql_row_to_chrono_utc};
 use actix_web::web::Data;
 use actix_web::web::Json;
-use mysql::prelude::*;
-use mysql::*;
+use mysql_async::prelude::*;
+use mysql_async::*;
 use savaged_libs::admin_libs::{AdminPagingStatistics, FetchAdminParameters};
 use savaged_libs::game_data_row::GameDataRow;
 use savaged_libs::public_user_info::PublicUserInfo;
@@ -15,13 +15,13 @@ const DATA_SEARCH_FIELDS: &'static [&'static str] = &[
     // "summary",
 ];
 
-pub fn db_admin_delete_game_data(
+pub async fn db_admin_delete_game_data(
     pool: &Data<Pool>,
     table: String,
     user_id: u32,
     row_id: u32,
 ) -> u32 {
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let delete_result: Option<Row> = conn
                 .exec_first(
@@ -41,7 +41,7 @@ pub fn db_admin_delete_game_data(
                         "row_id" => row_id,
                         // "table" => table,
                     },
-                )
+                ).await
                 .unwrap();
             match delete_result {
                 Some(_) => {
@@ -63,14 +63,14 @@ pub fn db_admin_delete_game_data(
     }
 }
 
-pub fn db_admin_update_game_data(
+pub async  fn db_admin_update_game_data(
     pool: &Data<Pool>,
     table: String,
     user_id: u32,
     row_id: u32,
     data: String,
 ) -> u32 {
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let notifications_result: Option<Row> = conn
                 .exec_first(
@@ -91,7 +91,7 @@ pub fn db_admin_update_game_data(
                         "data" => data,
                         // "table" => table,
                     },
-                )
+                ).await
                 .unwrap();
             match notifications_result {
                 Some(_) => {
@@ -113,13 +113,13 @@ pub fn db_admin_update_game_data(
     }
 }
 
-pub fn db_admin_insert_game_data(
+pub async fn db_admin_insert_game_data(
     pool: &Data<Pool>,
     table: String,
     user_id: u32,
     data: String,
 ) -> u32 {
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let insert_result: Option<Row> = conn
                 .exec_first(
@@ -151,7 +151,7 @@ pub fn db_admin_insert_game_data(
                         "data" => data,
                         // "table" => table,
                     },
-                )
+                ).await
                 .unwrap();
             match insert_result {
                 Some(_) => {
@@ -173,7 +173,7 @@ pub fn db_admin_insert_game_data(
     }
 }
 
-pub fn db_admin_get_game_data_paging_data(
+pub async fn db_admin_get_game_data_paging_data(
     pool: &Data<Pool>,
     table: String,
     paging_params: Json<FetchAdminParameters>,
@@ -192,13 +192,13 @@ pub fn db_admin_get_game_data_paging_data(
         &table
     );
 
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let saves_result: Result<Option<u32>> = conn.exec_first(
                 data_query,
                 // data_params,
                 (),
-            );
+            ).await;
             match saves_result {
                 Ok(row_opt) => match row_opt {
                     Some(row) => {
@@ -228,13 +228,13 @@ pub fn db_admin_get_game_data_paging_data(
     //
     // println!("admin_get_game_data_paging_data 2 data_query:\n{}", data_query);
 
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let saves_result: Result<Option<u32>> = conn.exec_first(
                 data_query,
                 // data_params,
                 (),
-            );
+            ).await;
             match saves_result {
                 Ok(row_opt) => {
                     match row_opt {
@@ -260,7 +260,7 @@ pub fn db_admin_get_game_data_paging_data(
 
                     if paging_params.needs_book_list {
                         paging.book_list =
-                            Some(get_books(&pool, 0, None, false, false, false, false, true));
+                            Some(get_books(&pool, 0, None, false, false, false, false, true).await);
                     }
                 }
                 Err(err) => {
@@ -277,7 +277,7 @@ pub fn db_admin_get_game_data_paging_data(
     return paging;
 }
 
-pub fn db_admin_get_game_data(
+pub async fn db_admin_get_game_data(
     pool: &Data<Pool>,
     table: String,
     paging_params: Json<FetchAdminParameters>,
@@ -485,13 +485,13 @@ pub fn db_admin_get_game_data(
 
     // println!("{}", &data_query);
 
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let saves_result: Result<Vec<Row>> = conn.exec(
                 data_query,
                 // data_params,
                 (),
-            );
+            ).await;
 
             match saves_result {
                 Ok(rows) => {
@@ -507,7 +507,7 @@ pub fn db_admin_get_game_data(
                         //     println!("cols {:?}", col.name_str() );
                         // }
                         // let mut item = _make_game_data_struct( row );
-                        rv.push(_make_game_data_struct(row));
+                        rv.push(_make_game_data_struct(row).await);
                     }
 
                     // println!("rv.len {}", rv.len() );
@@ -526,7 +526,7 @@ pub fn db_admin_get_game_data(
     return Vec::new();
 }
 
-pub fn db_admin_admin_get_item(pool: &Data<Pool>, table: String, id: u32) -> Option<GameDataRow> {
+pub async fn db_admin_admin_get_item(pool: &Data<Pool>, table: String, id: u32) -> Option<GameDataRow> {
     let data_query = format!(
         "
         SELECT
@@ -733,9 +733,9 @@ pub fn db_admin_admin_get_item(pool: &Data<Pool>, table: String, id: u32) -> Opt
 
     // println!("admin_get_game_data data_query:\n{}", data_query);
 
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
-            let saves_result: Result<Vec<Row>> = conn.exec(data_query, data_params);
+            let saves_result: Result<Vec<Row>> = conn.exec(data_query, data_params).await;
 
             match saves_result {
                 Ok(rows) => {
@@ -750,7 +750,7 @@ pub fn db_admin_admin_get_item(pool: &Data<Pool>, table: String, id: u32) -> Opt
                         //     println!("cols {:?}", col.name_str() );
                         // }
                         // let mut item = _make_game_data_struct( row );
-                        return Some(_make_game_data_struct(row));
+                        return Some(_make_game_data_struct(row).await);
                     }
 
                     // println!("rv.len {}", rv.len() );
@@ -769,7 +769,7 @@ pub fn db_admin_admin_get_item(pool: &Data<Pool>, table: String, id: u32) -> Opt
     return None;
 }
 
-fn _make_game_data_struct(mut row: Row) -> GameDataRow {
+async fn _make_game_data_struct(mut row: Row) -> GameDataRow {
     let mut created_by = 0;
     let mut created_by_user: Option<PublicUserInfo> = None;
     let created_opt = row.take_opt("primary_created_by").unwrap();
@@ -778,7 +778,7 @@ fn _make_game_data_struct(mut row: Row) -> GameDataRow {
             // println!("created_by val {:?}", val );
             created_by = val;
             if val > 0 {
-                let user = make_user_from_row(row.clone(), "created_by_user_".to_owned());
+                let user = make_user_from_row(row.clone(), "created_by_user_".to_owned()).await;
                 created_by_user = Some(user.get_public_info(true));
             }
         }
@@ -792,7 +792,7 @@ fn _make_game_data_struct(mut row: Row) -> GameDataRow {
             // println!("updated_by val {:?}", val );
             updated_by = val;
             if val > 0 {
-                let user = make_user_from_row(row.clone(), "updated_by_user_".to_owned());
+                let user = make_user_from_row(row.clone(), "updated_by_user_".to_owned()).await;
                 updated_by_user = Some(user.get_public_info(true));
             }
         }
@@ -807,7 +807,7 @@ fn _make_game_data_struct(mut row: Row) -> GameDataRow {
         Ok(val) => {
             deleted_by = val;
             if val > 0 {
-                let user = make_user_from_row(row.clone(), "deleted_by_user_".to_owned());
+                let user = make_user_from_row(row.clone(), "deleted_by_user_".to_owned()).await;
                 deleted_by_user = Some(user.get_public_info(true));
             }
         }

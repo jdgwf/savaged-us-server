@@ -2,9 +2,9 @@ use actix_session::Session;
 use actix_web::FromRequest;
 use chrono::DateTime;
 use chrono::Utc;
-// use mysql::*;
-// use mysql::prelude::*;
-use mysql::Pool;
+// use mysql_async::*;
+// use mysql_async::prelude::*;
+use mysql_async::Pool;
 use savaged_libs::save_db_row::SaveDBRow;
 use std::fs;
 use std::path;
@@ -50,7 +50,7 @@ use serde::{Deserialize, Serialize};
 //     // body: Json<Struct>,
 // ) -> Json<Vec<UserGroup>> {
 
-//     match pool.get_conn() {
+//     match pool.get_conn().await {
 //         Ok( mut conn) => {
 //             let selected_payments_result = conn
 //             .query_map(
@@ -141,7 +141,7 @@ pub async fn api_auth_login_for_token(
         &pool,
         form.email.to_owned(),
         form.password.to_owned(),
-    );
+    ).await;
 
     if login_results.user_id > 0 {
         let new_login_token = create_login_token(
@@ -149,9 +149,9 @@ pub async fn api_auth_login_for_token(
             login_results.user_id,
             user_agent.to_owned(),
             real_remote_addy.to_owned(),
-        )
+        ).await
         .unwrap();
-        let user_result = get_user(&pool, login_results.user_id);
+        let user_result = get_user(&pool, login_results.user_id).await;
         match user_result {
             Some(user) => {
                 rv.success = true;
@@ -233,7 +233,7 @@ pub async fn api_auth_login(
         &pool,
         form.email.to_owned(),
         form.password.to_owned(),
-    );
+    ).await;
 
     if login_results.user_id > 0 {
         let session_result = session.insert("user_id", login_results.user_id);
@@ -247,7 +247,7 @@ pub async fn api_auth_login(
             }
         }
 
-        let user_result = get_user(&pool, login_results.user_id);
+        let user_result = get_user(&pool, login_results.user_id).await;
         match user_result {
             Some(user) => {
                 // println!("api_auth_login Session ID set 2 {}", user.id);
@@ -311,7 +311,7 @@ pub async fn api_auth_get_user_data(
                     // println!("api_auth_get_user_data SESSION user_id: {}", user_id);
                     // session_user_id = user_id;
                     // session.insert("user_id", login_results.user_id);
-                    return Json(get_user(&pool, user_id));
+                    return Json(get_user(&pool, user_id).await);
                 }
                 None => {
                     // session.insert("user_id", login_results.user_id);
@@ -337,5 +337,5 @@ pub async fn api_auth_get_user_data(
         None => {}
     }
 
-    return Json(get_remote_user(&pool, api_key, login_token, request, session));
+    return Json(get_remote_user(&pool, api_key, login_token, request, session).await);
 }

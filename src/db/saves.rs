@@ -5,12 +5,12 @@ use actix_web::{
     web::Data,
 };
 use chrono::prelude::*;
-use mysql::prelude::*;
-use mysql::*;
+use mysql_async::prelude::*;
+use mysql_async::*;
 use savaged_libs::save_db_row::SaveDBRow;
 use std::path::Path;
 
-pub fn get_user_saves(
+pub async fn get_user_saves(
     pool: &Data<Pool>,
     user_id: u32,
     updated_on: Option<DateTime<Utc>>,
@@ -84,9 +84,9 @@ pub fn get_user_saves(
     // let data_params = params!{ "1" => "1"};
 
     // println!("data_query {}", &data_query);
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
-            let saves_result: Result<Vec<Row>> = conn.exec(data_query, data_params);
+            let saves_result: Result<Vec<Row>> = conn.exec(data_query, data_params).await;
             match saves_result {
                 Ok(rows) => {
                     let mut rv: Vec<SaveDBRow> = Vec::new();

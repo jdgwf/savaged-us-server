@@ -11,7 +11,7 @@ use actix_web::cookie::time;
 use actix_web::http::header;
 use actix_web::HttpRequest;
 use actix_web::web;
-use mysql::*;
+use mysql_async::*;
 use actix_web::cookie::Key;
 mod utils;
 mod web_sockets;
@@ -181,8 +181,6 @@ async fn main() -> std::io::Result<()> {
         );
     }
 
-    // let mysql_connection_pool;
-
     println!(
         "db_conn_url {}",
         format!(
@@ -195,8 +193,8 @@ async fn main() -> std::io::Result<()> {
 
     match Opts::try_from(db_conn_url.as_ref()) {
         Ok(opts) => {
-            match Pool::new(opts) {
-                Ok(pool) => {
+            let pool = Pool::new(opts);
+                // Ok(pool) => {
                     let mysql_connection_pool = pool.clone();
                     let chat_server = Lobby::default().start(); //create and spin up a lobby
 
@@ -215,7 +213,7 @@ async fn main() -> std::io::Result<()> {
                         let logger = Logger::default();
                         // let cors = Cors::permissive().allowed_header(header::CONTENT_TYPE);
                         let cors = Cors::default()
-                            .allowed_origin("https://v4.savaged.us")
+                            .allowed_origin("https://v4-rust.savaged.us")
                             .allowed_origin("https://savaged.us")
                             .allowed_origin("http://localhost")
                             .allowed_origin("http://127.0.0.1")
@@ -310,12 +308,12 @@ async fn main() -> std::io::Result<()> {
                     .bind((serve_ip, serve_port))?
                     .run()
                     .await
-                }
-                Err(err) => {
-                    println!("MysqL Pool Error 2 {}", err);
-                    std::process::exit(0x0100);
-                }
-            }
+                // }
+                // Err(err) => {
+                //     println!("MysqL Pool Error 2 {}", err);
+                //     std::process::exit(0x0100);
+                // }
+            // }
         }
         Err(err) => {
             println!("MysqL Pool Error 1 {}", err);
@@ -354,11 +352,17 @@ async fn yew_render(
         }
         Err( err ) => {
             println!("yew_render Session Error {}", err);
-            let _ = session.insert("user_id", 0);
+            // let _ = session.insert("user_id", 0);
         }
     }
 
-    // let user = get_user( &pool, session_user_id );
+    let user = get_user( &pool, session_user_id );
+    let mut web_content: WebContent = get_web_content(&pool).await;
+
+    web_content.user = get_user(
+        &pool,
+        session_user_id
+    ).await;
 
     let content = spawn_blocking(move || {
         use tokio::runtime::Builder;
@@ -369,14 +373,12 @@ async fn yew_render(
         set.block_on(&rt, async {
             // let server_renderer = ServerRenderer::<ServerApp>::new();
             // let url = url.to_owned();
+
+
+
             let server_renderer = ServerRenderer::<ServerApp>::with_props(move || {
 
-                let mut web_content: WebContent = get_web_content(&pool);
 
-                web_content.user = get_user(
-                    &pool,
-                    session_user_id
-                );
 
                 // println!("yew_render session_user_id {:?}", session_user_id);
                 // println!("yew_render user {:?}", &web_content.user);
@@ -393,6 +395,7 @@ async fn yew_render(
     })
     .await
     .expect("the thread has failed.");
+
 
     let index_html_s = tokio::fs::read_to_string("./public/index.html")
         .await

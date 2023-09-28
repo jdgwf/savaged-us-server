@@ -5,8 +5,8 @@ use actix_session::Session;
 use actix_web::cookie::time::PrimitiveDateTime;
 use actix_web::web::Json;
 use chrono::prelude::*;
-use mysql::prelude::*;
-use mysql::*;
+use mysql_async::prelude::*;
+use mysql_async::*;
 use savaged_libs::admin_libs::{AdminPagingStatistics, FetchAdminParameters};
 
 use actix_web::web::Data;
@@ -21,13 +21,13 @@ const USER_SEARCH_FIELDS: &'static [&'static str] =
 
 // HINT: conn.last_insert_id()
 // HINT: conn.rows_affected()
-pub fn create_login_token(
+pub async fn create_login_token(
     pool: &Data<Pool>,
     user_id: u32,
     browser: String,
     ip_address: String,
 ) -> Option<String> {
-    let user = get_user(pool, user_id).unwrap();
+    let user = get_user(pool, user_id).await.unwrap();
 
     let mut login_tokens = user.login_tokens;
 
@@ -48,13 +48,13 @@ pub fn create_login_token(
     });
 
     let login_token_str = serde_json::to_string(&login_tokens).unwrap();
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let _: Option<Row> = conn
                 .exec_first(
                     "update `users` set `login_tokens` = :login_tokens  where `id` = :user_id",
                     params! { "user_id" => user_id, "login_tokens" => login_token_str },
-                )
+                ).await
                 .unwrap();
 
             return Some(new_token.to_owned());
@@ -73,19 +73,19 @@ pub fn create_login_token(
     return None;
 }
 
-pub fn update_user_login_tokens(
+pub async fn update_user_login_tokens(
     pool: &Data<Pool>,
     user_id: u32,
     login_tokens: Vec<LoginToken>,
 ) -> Option<Vec<LoginToken>> {
     let login_token_str = serde_json::to_string(&login_tokens).unwrap();
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let _: Option<Row> = conn
                 .exec_first(
                     "update `users` set `login_tokens` = :login_tokens  where `id` = :user_id",
                     params! { "user_id" => user_id, "login_tokens" => login_token_str },
-                )
+                ).await
                 .unwrap();
 
             return Some(login_tokens.to_owned());
@@ -96,21 +96,21 @@ pub fn update_user_login_tokens(
     return None;
 }
 
-pub fn get_user(pool: &Data<Pool>, user_id: u32) -> Option<User> {
-    match pool.get_conn() {
+pub async fn get_user(pool: &Data<Pool>, user_id: u32) -> Option<User> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let found_user_result: Option<Row> = conn
                 .exec_first(
                     "select * from `users` where `id` = :user_id",
                     params! { "user_id" => user_id},
-                )
+                ).await
                 .unwrap();
             match found_user_result {
                 Some(row) => {
-                    let mut user = make_user_from_row(row, "".to_owned());
+                    let mut user = make_user_from_row(row, "".to_owned()).await;
 
                     let mut new_count = 0;
-                    for msg in &get_notifications_for_user(pool, user.id) {
+                    for msg in &get_notifications_for_user(pool, user.id).await {
                         if msg.read < 1 {
                             new_count += 1;
                         }
@@ -133,7 +133,44 @@ pub fn get_user(pool: &Data<Pool>, user_id: u32) -> Option<User> {
     return None;
 }
 
-pub fn admin_get_users(pool: &Data<Pool>, paging_params: Json<FetchAdminParameters>) -> Vec<User> {
+// pub fn get_remote_user_public_info(pool: &Data<Pool>, user_id: u32) -> Option<User> {
+//     match pool.get_conn().await {
+//         Ok(mut conn) => {
+//             let found_user_result: Option<Row> = conn
+//                 .exec_first(
+//                     "select * from `users` where `id` = :user_id",
+//                     params! { "user_id" => user_id},
+//                 )
+//                 .unwrap();
+//             match found_user_result {
+//                 Some(row) => {
+//                     let mut user = make_user_from_row(row, "".to_owned());
+
+//                     let mut new_count = 0;
+//                     for msg in &get_notifications_for_user(pool, user.id) {
+//                         if msg.read < 1 {
+//                             new_count += 1;
+//                         }
+//                     }
+//                     user.unread_notifications = new_count;
+
+//                     return Some(user);
+//                 }
+//                 None => {
+//                     return None;
+//                 } // Err( err ) => {
+//                   //     println!("login_for_token Error 1 {}", err );
+//                   // }
+//             }
+//         }
+//         Err(err) => {
+//             println!("login_for_token Error 3 {}", err);
+//         }
+//     }
+//     return None;
+// }
+
+pub async fn admin_get_users(pool: &Data<Pool>, paging_params: Json<FetchAdminParameters>) -> Vec<User> {
     let mut data_query = format!(
         "
         SELECT * from `users`
@@ -153,13 +190,13 @@ pub fn admin_get_users(pool: &Data<Pool>, paging_params: Json<FetchAdminParamete
 
     println!("admin_get_users data_query:\n{}", data_query);
 
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let saves_result: Result<Vec<Row>> = conn.exec(
                 data_query,
                 // data_params,
                 (),
-            );
+            ).await;
             match saves_result {
                 Ok(rows) => {
                     let mut rv: Vec<User> = Vec::new();
@@ -170,7 +207,7 @@ pub fn admin_get_users(pool: &Data<Pool>, paging_params: Json<FetchAdminParamete
                         //     println!("row_data {:?}", row_data );
                         // }
 
-                        let mut user = make_user_from_row(row, "".to_owned());
+                        let mut user = make_user_from_row(row, "".to_owned()).await;
                         rv.push(user);
                     }
 
@@ -190,7 +227,7 @@ pub fn admin_get_users(pool: &Data<Pool>, paging_params: Json<FetchAdminParamete
     return Vec::new();
 }
 
-pub fn admin_get_users_paging_data(
+pub async fn admin_get_users_paging_data(
     pool: &Data<Pool>,
     paging_params: Json<FetchAdminParameters>,
 ) -> AdminPagingStatistics {
@@ -216,13 +253,13 @@ pub fn admin_get_users_paging_data(
 
     // println!("admin_get_users_paging_data 1 data_query:\n{}", data_query);
 
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let saves_result: Result<Option<u32>> = conn.exec_first(
                 data_query,
                 // data_params,
                 (),
-            );
+            ).await;
             match saves_result {
                 Ok(row_opt) => {
                     match row_opt {
@@ -274,13 +311,13 @@ pub fn admin_get_users_paging_data(
     //
     // println!("admin_get_users_paging_data 2 data_query:\n{}", data_query);
 
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let saves_result: Result<Option<u32>> = conn.exec_first(
                 data_query,
                 // data_params,
                 (),
-            );
+            ).await;
             match saves_result {
                 Ok(row_opt) => {
                     match row_opt {
@@ -318,7 +355,7 @@ pub fn admin_get_users_paging_data(
     return paging;
 }
 
-pub fn get_user_from_login_token(
+pub async fn get_user_from_login_token(
     pool: &Data<Pool>,
     token: Option<String>,
     _request: HttpRequest,
@@ -343,7 +380,7 @@ pub fn get_user_from_login_token(
         }
     }
 
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             if token != None {
                 let token = token.unwrap().clone();
@@ -355,13 +392,13 @@ pub fn get_user_from_login_token(
 
                     ) limit 1",
                     params!{ "token" => "%".to_owned() + &token + &"%".to_owned()}
-                ).unwrap();
+                ).await.unwrap();
                 match found_user_result {
                     Some(row) => {
-                        let mut user = make_user_from_row(row, "".to_owned());
+                        let mut user = make_user_from_row(row, "".to_owned()).await;
 
                         let mut new_count = 0;
-                        for msg in &get_notifications_for_user(&pool, user.id) {
+                        for msg in &get_notifications_for_user(&pool, user.id).await {
                             if msg.read < 1 {
                                 new_count += 1;
                             }
@@ -385,12 +422,12 @@ pub fn get_user_from_login_token(
     return None;
 }
 
-pub fn get_user_from_api_key(
+pub async fn get_user_from_api_key(
     pool: &Data<Pool>,
     api_key: String,
     _request: HttpRequest,
 ) -> Option<User> {
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let api_key = api_key.clone();
             let found_user_result: Option<Row> = conn.exec_first(
@@ -400,10 +437,10 @@ pub fn get_user_from_api_key(
 
                 ) limit 1",
                 params!{ "api_key" => api_key}
-            ).unwrap();
+            ).await.unwrap();
             match found_user_result {
                 Some(row) => {
-                    let user = make_user_from_row(row, "".to_owned());
+                    let user = make_user_from_row(row, "".to_owned()).await;
                     return Some(user);
                 }
                 None => {
@@ -420,7 +457,7 @@ pub fn get_user_from_api_key(
     return None;
 }
 
-pub fn get_remote_user(
+pub async fn get_remote_user(
     pool: &Data<Pool>,
     api_key: Option<String>,
     token: Option<String>,
@@ -467,7 +504,7 @@ pub fn get_remote_user(
 
     if token != None && !token.as_ref().unwrap().is_empty() {
         let token_user_result =
-            get_user_from_login_token(&pool, token.to_owned(), request.clone());
+            get_user_from_login_token(&pool, token.to_owned(), request.clone()).await;
         match token_user_result {
             Some(user) => {
                 println!("get_remote_user token login");
@@ -477,14 +514,14 @@ pub fn get_remote_user(
                     token.unwrap().to_owned(),
                     user_agent.to_owned(),
                     real_remote_addy.to_owned(),
-                ));
+                ).await);
             }
             None => {}
         }
     } else {
         if api_key != None && !api_key.as_ref().unwrap().is_empty() {
             let api_key_result =
-                get_user_from_api_key(&pool, api_key.unwrap().to_owned(), request.clone());
+                get_user_from_api_key(&pool, api_key.unwrap().to_owned(), request.clone()).await;
             match api_key_result {
                 Some(user) => {
                     println!("get_remote_user api login");
@@ -494,7 +531,7 @@ pub fn get_remote_user(
                         "".to_owned(),
                         user_agent.to_owned(),
                         real_remote_addy.to_owned(),
-                    ));
+                    ).await);
                 }
                 None => {}
             }
@@ -512,16 +549,16 @@ pub fn get_remote_user(
                     // session.insert("user_id", login_results.user_id);
                     if user_id > 0 {
 
-                        let user_option  = get_user(&pool, user_id);
+                        let user_option  = get_user(&pool, user_id).await;
                         match user_option {
-                            Some(mut user) => {
+                            Some( user ) => {
                                 return Some(_update_user_last_seen(
                                     &pool,
                                     user.clone(),
                                     "".to_owned(),
                                     user_agent.to_owned(),
                                     real_remote_addy.to_owned(),
-                                ));
+                                ).await);
                             }
                             None => {}}
                         }
@@ -537,9 +574,9 @@ pub fn get_remote_user(
     return None;
 }
 
-pub fn update_user(pool: &Data<Pool>,user: User) -> u64 {
+pub async fn update_user(pool: &Data<Pool>,user: User) -> u64 {
     // println!("update_user (db) called ");
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let sql = "UPDATE `users` set
             `first_name` = :first_name,
@@ -584,7 +621,7 @@ pub fn update_user(pool: &Data<Pool>,user: User) -> u64 {
                 "id" => &user.id,
             };
 
-            conn.exec_drop(sql, params).unwrap();
+            conn.exec_drop(sql, params).await.unwrap();
 
             return conn.affected_rows();
         }
@@ -595,8 +632,8 @@ pub fn update_user(pool: &Data<Pool>,user: User) -> u64 {
     }
 }
 
-pub fn username_available(pool: &Data<Pool>,user: User, username: String) -> bool {
-    match pool.get_conn() {
+pub async fn username_available(pool: &Data<Pool>,user: User, username: String) -> bool {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let sql = "select `id` from `users`
             where
@@ -609,7 +646,7 @@ pub fn username_available(pool: &Data<Pool>,user: User, username: String) -> boo
                 "id" => &user.id,
             };
 
-            let rows: Option<Row> = conn.exec_first(sql, params).unwrap();
+            let rows: Option<Row> = conn.exec_first(sql, params).await.unwrap();
             match rows {
                 Some(_row) => {
                     return false;
@@ -626,8 +663,8 @@ pub fn username_available(pool: &Data<Pool>,user: User, username: String) -> boo
     return false;
 }
 
-pub fn save_username(pool: &Data<Pool>,user: User, username: String) -> u64 {
-    match pool.get_conn() {
+pub async fn save_username(pool: &Data<Pool>,user: User, username: String) -> u64 {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let sql = "update `users` SET
             `username` = :username
@@ -641,7 +678,7 @@ pub fn save_username(pool: &Data<Pool>,user: User, username: String) -> u64 {
                 "id" => &user.id,
             };
 
-            conn.exec_drop(sql, params).unwrap();
+            conn.exec_drop(sql, params).await.unwrap();
 
             return conn.affected_rows();
         }
@@ -652,9 +689,9 @@ pub fn save_username(pool: &Data<Pool>,user: User, username: String) -> u64 {
     }
 }
 
-pub fn update_password(pool: &Data<Pool>,user: User, new_password: Option<String>) -> u64 {
+pub async fn update_password(pool: &Data<Pool>,user: User, new_password: Option<String>) -> u64 {
     println!("update_password (db) called {:?}", new_password);
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let sql = "UPDATE `users` set
             `password` = :password,
@@ -673,7 +710,7 @@ pub fn update_password(pool: &Data<Pool>,user: User, new_password: Option<String
                 "id" => &user.id,
             };
 
-            conn.exec_drop(sql, params).unwrap();
+            conn.exec_drop(sql, params).await.unwrap();
 
             return conn.affected_rows();
         }
@@ -684,7 +721,7 @@ pub fn update_password(pool: &Data<Pool>,user: User, new_password: Option<String
     }
 }
 
-fn _update_user_last_seen(
+async fn _update_user_last_seen(
     pool: &Data<Pool>,
     user: User,
     the_token: String,
@@ -705,7 +742,7 @@ fn _update_user_last_seen(
     let mut altered_user = user.clone();
 
     let mut new_count = 0;
-    for msg in &get_notifications_for_user(&pool, user.id) {
+    for msg in &get_notifications_for_user(&pool, user.id).await {
         if msg.read < 1 {
             new_count += 1;
         }
@@ -715,7 +752,7 @@ fn _update_user_last_seen(
 
     altered_user.login_tokens = updated_tokens.clone();
     let login_token_str = serde_json::to_string(&updated_tokens).unwrap();
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let _: Option<Row> = conn
                 .exec_first(
@@ -731,7 +768,7 @@ fn _update_user_last_seen(
                         "last_seen_ip" => real_remote_addy,
                         "last_seen_browser" => user_agent,
                     },
-                )
+                ).await
                 .unwrap();
 
             return altered_user.clone();
@@ -743,7 +780,7 @@ fn _update_user_last_seen(
     }
 }
 
-pub fn make_user_from_row(mut row: Row, prefix: String) -> User {
+pub async fn make_user_from_row(mut row: Row, prefix: String) -> User {
     let mut login_tokens_string = "".to_string();
     let login_tokens_string_opt = row
         .take_opt((prefix.to_owned() + &"login_tokens").as_str())
@@ -965,7 +1002,7 @@ pub struct LoginResult {
     pub error: String,
 }
 
-pub fn log_user_in(pool: &Data<Pool>,email: String, password: String) -> LoginResult {
+pub async fn log_user_in(pool: &Data<Pool>,email: String, password: String) -> LoginResult {
     // println!("email {}", form.email.to_owned() );
     // println!("sha_secret_key {}", sha_secret_key.to_owned() );
     // println!("password {}", password.to_owned() );
@@ -985,7 +1022,7 @@ pub fn log_user_in(pool: &Data<Pool>,email: String, password: String) -> LoginRe
         error: "Database Error".to_owned(),
     };
 
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             // let selected_payments_result = conn
             // .query_map(
@@ -1003,7 +1040,7 @@ pub fn log_user_in(pool: &Data<Pool>,email: String, password: String) -> LoginRe
             //         println!("login_for_token Error 4 {}", err );
             //     }
             // }
-            let found_user_result: Option<Row> = conn.exec_first("select id, banned, banned_reason from `users` where `email` like ? and password = ?", (email.to_owned(), encrypted_pass.to_owned())).unwrap();
+            let found_user_result: Option<Row> = conn.exec_first("select id, banned, banned_reason from `users` where `email` like ? and password = ?", (email.to_owned(), encrypted_pass.to_owned())).await.unwrap();
             match found_user_result {
                 Some(mut row) => {
                     return_value.error = "".to_string();

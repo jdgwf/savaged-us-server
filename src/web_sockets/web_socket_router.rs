@@ -1,12 +1,11 @@
-use crate::db::users::get_user;
-use crate::db::users::get_user_from_login_token;
+use crate::db::users::get_remote_user;
 use crate::web_sockets::Lobby;
 use crate::web_sockets::ServerWebsocket;
 use actix::Addr;
 use actix_session::Session;
 use actix_web::{get, web::Data, web::Payload, Error, HttpRequest, HttpResponse};
 use actix_web_actors::ws;
-use mysql::Pool;
+use mysql_async::Pool;
 
 #[get("/_ws")]
 pub async fn web_socket_router(
@@ -16,10 +15,7 @@ pub async fn web_socket_router(
     chat_server: Data<Addr<Lobby>>,
     session: Session,
 ) -> Result<HttpResponse, Error> {
-    let mut user = get_user_from_login_token(&pool, None, req.clone());
-
-
-    println!("web_socket_router");
+    let user = get_remote_user(&pool, None, None, req.clone(), session.clone()).await;
 
 
     let ws = ServerWebsocket::new(
@@ -29,7 +25,7 @@ pub async fn web_socket_router(
         req.clone(),
         session,
     );
-
+    // println!("_ws hit");
     let resp = ws::start(ws, &req, stream)?;
     Ok(resp)
 }

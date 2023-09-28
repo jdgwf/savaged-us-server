@@ -7,7 +7,7 @@ use lettre::{
     message::{header, MultiPart, SinglePart},
     Message, SmtpTransport, Transport,
 };
-use mysql::Pool;
+use mysql_async::Pool;
 use sha2::{Digest, Sha224};
 use voca_rs::strip::strip_tags;
 use webp::{Encoder, PixelLayout, WebPImage, WebPMemory}; // Using webp crate: https://github.com/jaredforth/webp
@@ -80,7 +80,7 @@ pub async fn send_standard_email(
     let compound_subject =
         email_subject_prefix.to_string() + &" ".to_string() + &subject.to_string();
 
-    let user_result = get_user(pool, user_id);
+    let user_result = get_user(pool, user_id).await;
     match user_result {
         Some(user) => {
             let result = send_email(

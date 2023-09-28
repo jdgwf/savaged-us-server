@@ -1,13 +1,13 @@
 use crate::db::utils::mysql_datetime_to_chrono_utc;
 use actix_web::web::Data;
 use chrono::prelude::*;
-use mysql::prelude::*;
-use mysql::Pool;
+use mysql_async::prelude::*;
+use mysql_async::Pool;
 use savaged_libs::book::Book;
 use savaged_libs::utils::bool_from_int_or_bool;
 use serde::{Deserialize, Serialize};
 
-pub fn get_books(
+pub async fn get_books(
     pool: &Data<Pool>,
     current_user_id: u32,
     updated_on: Option<DateTime<Utc>>,
@@ -64,7 +64,7 @@ pub fn get_books(
         None => {}
     }
     // println!("{}", data_query);
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_row_data_result = conn.query_map(
                 data_query,
@@ -127,7 +127,7 @@ pub fn get_books(
                         }
                     }
                 },
-            );
+            ).await;
             match get_row_data_result {
                 Ok(get_row_data) => {
                     return get_row_data;

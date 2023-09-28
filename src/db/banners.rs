@@ -1,10 +1,10 @@
 use actix_web::web::Data;
-use mysql::prelude::*;
-use mysql::*;
+use mysql_async::prelude::*;
+use mysql_async::*;
 use savaged_libs::banner::{Banner, SimpleBanner};
 
-pub fn get_active_banners(pool: &Data<Pool>) -> Vec<SimpleBanner> {
-    match pool.get_conn() {
+pub async fn get_active_banners(pool: &Data<Pool>) -> Vec<SimpleBanner> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_banners_result = conn.query_map(
                 "
@@ -21,7 +21,7 @@ pub fn get_active_banners(pool: &Data<Pool>) -> Vec<SimpleBanner> {
                     banner.id = id;
                     return banner;
                 },
-            );
+            ).await;
             match get_banners_result {
                 Ok(get_banners) => {
                     return get_banners;
@@ -39,8 +39,8 @@ pub fn get_active_banners(pool: &Data<Pool>) -> Vec<SimpleBanner> {
     return Vec::new();
 }
 
-pub fn get_banners(pool: &Data<Pool>) -> Vec<Banner> {
-    match pool.get_conn() {
+pub async fn get_banners(pool: &Data<Pool>) -> Vec<Banner> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_banners_result = conn.query_map(
                 "SELECT
@@ -53,7 +53,7 @@ pub fn get_banners(pool: &Data<Pool>) -> Vec<Banner> {
                     banner.id = id;
                     return banner;
                 },
-            );
+            ).await;
             match get_banners_result {
                 Ok(get_banners) => {
                     return get_banners;

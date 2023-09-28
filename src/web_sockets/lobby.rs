@@ -41,7 +41,7 @@ impl Handler<Disconnect> for Lobby {
 
     fn handle(&mut self, msg: Disconnect, _: &mut Context<Self>) {
         if self.sessions.remove(&msg.id).is_some() {
-            println!("Handler for Disconnect Lobby");
+            // println!("Handler for Disconnect Lobby");
 
             match msg.room_id {
                 Some(room_id) => {
@@ -73,7 +73,7 @@ impl Handler<Connect> for Lobby {
     type Result = ();
 
     fn handle(&mut self, msg: Connect, _: &mut Context<Self>) -> Self::Result {
-        println!("Handler for Connect Lobby");
+        // println!("Handler for Connect Lobby");
         // create a room if necessary, and then add the id to it
         match msg.room_id {
             Some(room_id) => {

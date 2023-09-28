@@ -18,8 +18,9 @@ use actix_web::web::Data;
 use actix_web::HttpRequest;
 use actix_web_actors::ws;
 use handle_message::handle_message;
-use mysql::Pool;
+use mysql_async::Pool;
 use savaged_libs::user::User;
+use savaged_libs::public_user_info::PublicUserInfo;
 use savaged_libs::websocket_message::WebSocketMessage;
 use serde_json;
 use std::time::{Duration, Instant};
@@ -48,6 +49,7 @@ impl Actor for ServerWebsocket {
 
     fn started(&mut self, ctx: &mut Self::Context) {
         self.hb(ctx);
+        // println!("ServerWebsocket Actor started");
 
         let addr = ctx.address();
         // let recip = ;
@@ -73,6 +75,7 @@ impl Actor for ServerWebsocket {
             id: self.id,
             room_id: self.room_id,
         });
+        // println!("ServerWebsocket Actor stopping");
         Running::Stop
     }
 }
@@ -85,6 +88,7 @@ impl Handler<WsMessage> for ServerWebsocket {
         msg: WsMessage,
         ctx: &mut Self::Context,
     ) {
+        // println!("ServerWebsocket Handler handle");
         ctx.text(msg.0);
     }
 }
@@ -95,34 +99,36 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
         msg: Result<ws::Message, ws::ProtocolError>,
         ctx: &mut Self::Context,
     ) {
+        println!("ServerWebsocket StreamHandler handle {:?}", msg);
+        // if self.user == None {
+        //     let session_result= self.session.get::<u32>("user_id");
 
+        //     println!("handle {:?}", self.session.get::<u32>("user_id"));
+        //     // let mut user_id  = 0;
+        //     match session_result {
+        //         Ok( user_id_option ) => {
+        //             match user_id_option {
+        //                 Some( user_id ) => {
+        //                     println!("web_socket_router handle session value: {}", user_id);
+        //                     // session_user_id = user_id;
+        //                     // session.insert("web_socket_router user_id", login_results.user_id);
+        //                     self.user = get_user( &self.pool, user_id);
+        //                 }
+        //                 None => {
+        //                     // session.insert("user_id", login_results.user_id);
+        //                     // println!("web_socket_router handle session value: None");
+        //                 }
+        //             }
 
-        if self.user == None {
-            let session_result= self.session.get::<u32>("user_id");
-
-            println!("handle {:?}", self.session.get::<u32>("user_id"));
-            // let mut user_id  = 0;
-            match session_result {
-                Ok( user_id_option ) => {
-                    match user_id_option {
-                        Some( user_id ) => {
-                            println!("web_socket_router handle session value: {}", user_id);
-                            // session_user_id = user_id;
-                            // session.insert("web_socket_router user_id", login_results.user_id);
-                            self.user = get_user( &self.pool, user_id);
-                        }
-                        None => {
-                            // session.insert("user_id", login_results.user_id);
-                            // println!("web_socket_router handle session value: None");
-                        }
-                    }
-
-                }
-                Err( err ) => {
-                    println!("Session Error {}", err);
-                }
-            }
-        }
+        //         }
+        //         Err( err ) => {
+        //             println!("Session Error {}", err);
+        //         }
+        //     }
+        // }
+        // if self.user != None {
+        //     println!("web_socket_router handle session value: {:?}", self.user.clone().unwrap().id );
+        // }
         match msg {
             Ok(actix_web_actors::ws::Message::Continuation(_)) => {}
             Ok(actix_web_actors::ws::Message::Nop) => {}
@@ -136,6 +142,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
             }
             Ok(ws::Message::Text(sent_data)) => {
                 // ctx.text(text);
+                println!("ServerWebsocket sent_data {:?}", sent_data);
+
                 let msg_result: Result<WebSocketMessage, serde_json::Error> =
                     serde_json::from_str(&sent_data);
                 match msg_result {
@@ -164,7 +172,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for ServerWebsocket {
             }
 
             Ok(ws::Message::Close(closed)) => {
-                println!("Closed event {:?}", closed);
+                // println!("Closed event {:?}", closed);
                 ctx.close(closed);
                 // ctx.stop();
             }
@@ -187,9 +195,9 @@ impl ServerWebsocket {
     ) -> ServerWebsocket {
         let conn_info = req.connection_info();
 
-        let session_result= session.get::<u32>("user_id");
+        // let session_result= session.get::<u32>("user_id");
 
-        println!("ServerWebsocket new {:?}", session.get::<u32>("user_id"));
+        // println!("ServerWebsocket new {:?}", session.get::<u32>("user_id"));
 
         let mut real_remote_addy = "".to_string();
         let mut user_agent = "".to_string();
@@ -225,8 +233,8 @@ impl ServerWebsocket {
 
         let session_result= session.get::<u32>("user_id");
 
-        println!("ServerWebsocket new session.entries {:?}", session.entries());
-        println!("WebSocket new session_result {:?}", session_result.unwrap());
+        // println!("ServerWebsocket new session.entries {:?}", session.entries());
+        // println!("WebSocket new session_result {:?}", session_result.unwrap());
         ServerWebsocket {
             id: Uuid::new_v4(),
             user: user,

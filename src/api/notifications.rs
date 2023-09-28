@@ -1,6 +1,6 @@
 use actix_session::Session;
-use mysql::prelude::*;
-use mysql::*;
+use mysql_async::prelude::*;
+use mysql_async::*;
 
 use crate::db::utils::mysql_datetime_to_chrono_utc;
 use actix_web::{post, web::Data, web::Json};
@@ -35,11 +35,11 @@ pub async fn api_notifications_get(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
-            return Json(get_notifications_for_user(&pool, user.id));
+            return Json(get_notifications_for_user(&pool, user.id).await);
         }
         None => {
             return Json(Vec::new());
@@ -87,12 +87,12 @@ pub async fn api_notifications_set_deleted(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
             // println!("notifications_set_deleted notification_id: {}", notification_id);
-            match pool.get_conn() {
+            match pool.get_conn().await {
                 Ok(mut conn) => {
                     let notifications_result: Option<Row> = conn
                         .exec_first(
@@ -107,16 +107,16 @@ pub async fn api_notifications_set_deleted(
                                 "user_id" => user.id,
                                 "notification_id" => notification_id,
                             },
-                        )
+                        ).await
                         .unwrap();
                     match notifications_result {
                         Some(_) => {
-                            return Json(get_notifications_for_user(&pool, user.id));
+                            return Json(get_notifications_for_user(&pool, user.id).await);
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json(get_notifications_for_user(&pool, user.id));
+                            return Json(get_notifications_for_user(&pool, user.id).await);
                         }
                     }
                 }
@@ -181,13 +181,13 @@ pub async fn api_notifications_set_read(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
             // println!("notifications_set_read notification_id: {}", notification_id);
             // println!("notifications_set_read read: {}", read);
-            match pool.get_conn() {
+            match pool.get_conn().await {
                 Ok(mut conn) => {
                     let notifications_result: Option<Row> = conn
                         .exec_first(
@@ -203,16 +203,16 @@ pub async fn api_notifications_set_read(
                                 "notification_id" => notification_id,
                                 "read" => read,
                             },
-                        )
+                        ).await
                         .unwrap();
                     match notifications_result {
                         Some(_) => {
-                            return Json(get_notifications_for_user(&pool, user.id));
+                            return Json(get_notifications_for_user(&pool, user.id).await);
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json(get_notifications_for_user(&pool, user.id));
+                            return Json(get_notifications_for_user(&pool, user.id).await);
                         }
                     }
                 }
@@ -251,11 +251,11 @@ pub async fn api_notifications_set_all_read(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
-            match pool.get_conn() {
+            match pool.get_conn().await {
                 Ok(mut conn) => {
                     let notifications_result: Option<Row> = conn
                         .exec_first(
@@ -267,16 +267,16 @@ pub async fn api_notifications_set_all_read(
                             params! {
                                 "user_id" => user.id,
                             },
-                        )
+                        ).await
                         .unwrap();
                     match notifications_result {
                         Some(_) => {
-                            return Json(get_notifications_for_user(&pool, user.id));
+                            return Json(get_notifications_for_user(&pool, user.id).await);
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json(get_notifications_for_user(&pool, user.id));
+                            return Json(get_notifications_for_user(&pool, user.id).await);
                         }
                     }
                 }
@@ -292,8 +292,8 @@ pub async fn api_notifications_set_all_read(
     }
 }
 
-pub fn get_notifications_for_user(pool: &Data<Pool>, current_user_id: u32) -> Vec<Notification> {
-    match pool.get_conn() {
+pub async fn get_notifications_for_user(pool: &Data<Pool>, current_user_id: u32) -> Vec<Notification> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let notifications_result = conn.query_map(
                 format!(
@@ -327,7 +327,7 @@ pub fn get_notifications_for_user(pool: &Data<Pool>, current_user_id: u32) -> Ve
                         created_on: mysql_datetime_to_chrono_utc(created_on_string),
                     }
                 },
-            );
+            ).await;
             match notifications_result {
                 Ok(notifications) => {
                     return notifications;
@@ -369,11 +369,11 @@ pub async fn api_notifications_delete_basic_admin(
         None => {}
     }
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
-            match pool.get_conn() {
+            match pool.get_conn().await {
                 Ok(mut conn) => {
                     let notifications_result: Option<Row> = conn
                         .exec_first(
@@ -397,16 +397,16 @@ pub async fn api_notifications_delete_basic_admin(
                             params! {
                                 "user_id" => user.id,
                             },
-                        )
+                        ).await
                         .unwrap();
                     match notifications_result {
                         Some(_) => {
-                            return Json(get_notifications_for_user(&pool, user.id));
+                            return Json(get_notifications_for_user(&pool, user.id).await);
                         }
 
                         None => {
                             // println!("notifications_get Error 4 {}", err );
-                            return Json(get_notifications_for_user(&pool, user.id));
+                            return Json(get_notifications_for_user(&pool, user.id).await);
                         }
                     }
                 }

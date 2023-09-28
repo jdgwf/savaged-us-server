@@ -1,10 +1,10 @@
 use actix_web::web::Data;
-use mysql::prelude::*;
-use mysql::*;
+use mysql_async::prelude::*;
+use mysql_async::*;
 use savaged_libs::help_article::{HelpArticle, SimpleHelpArticle};
 
-pub fn get_active_help_articles(pool: &Data<Pool>) -> Vec<SimpleHelpArticle> {
-    match pool.get_conn() {
+pub async fn get_active_help_articles(pool: &Data<Pool>) -> Vec<SimpleHelpArticle> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_help_articles_result = conn.query_map(
                 "
@@ -22,7 +22,7 @@ pub fn get_active_help_articles(pool: &Data<Pool>) -> Vec<SimpleHelpArticle> {
                     help_article.id = id;
                     return help_article;
                 },
-            );
+            ).await;
             match get_help_articles_result {
                 Ok(get_help_articles) => {
                     return get_help_articles;
@@ -40,8 +40,8 @@ pub fn get_active_help_articles(pool: &Data<Pool>) -> Vec<SimpleHelpArticle> {
     return Vec::new();
 }
 
-pub fn get_help_articles(pool: &Data<Pool>) -> Vec<HelpArticle> {
-    match pool.get_conn() {
+pub async fn get_help_articles(pool: &Data<Pool>) -> Vec<HelpArticle> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_help_articles_result = conn.query_map(
                 "SELECT
@@ -54,7 +54,7 @@ pub fn get_help_articles(pool: &Data<Pool>) -> Vec<HelpArticle> {
                     help_article.id = id;
                     return help_article;
                 },
-            );
+            ).await;
             match get_help_articles_result {
                 Ok(get_help_articles) => {
                     return get_help_articles;

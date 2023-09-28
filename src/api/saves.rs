@@ -1,7 +1,7 @@
 use actix_session::Session;
-// use mysql::*;
-// use mysql::prelude::*;
-use mysql::Pool;
+// use mysql_async::*;
+// use mysql_async::prelude::*;
+use mysql_async::Pool;
 use savaged_libs::save_db_row::SaveDBRow;
 // use std::fs;
 // use std::path;
@@ -67,11 +67,11 @@ pub async fn api_saves_get(
     // println!("api_key {:?}", api_key);
     // println!("login_token {:?}", login_token);
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     match user_option {
         Some(user) => {
-            let saves = get_user_saves(&pool, user.id, form.last_updated, false);
+            let saves = get_user_saves(&pool, user.id, form.last_updated, false).await;
             return Json(saves);
         }
 

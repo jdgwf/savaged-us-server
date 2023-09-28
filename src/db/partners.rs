@@ -1,10 +1,10 @@
 use actix_web::web::Data;
-use mysql::prelude::*;
-use mysql::*;
+use mysql_async::prelude::*;
+use mysql_async::*;
 use savaged_libs::partner::{Partner, SimplePartner};
 
-pub fn get_active_partners(pool: &Data<Pool>) -> Vec<SimplePartner> {
-    match pool.get_conn() {
+pub async fn get_active_partners(pool: &Data<Pool>) -> Vec<SimplePartner> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_partners_result = conn.query_map(
                 "
@@ -22,7 +22,7 @@ pub fn get_active_partners(pool: &Data<Pool>) -> Vec<SimplePartner> {
                     partner.id = id;
                     return partner;
                 },
-            );
+            ).await;
 
             match get_partners_result {
                 Ok(get_partners) => {
@@ -42,8 +42,8 @@ pub fn get_active_partners(pool: &Data<Pool>) -> Vec<SimplePartner> {
     return Vec::new();
 }
 
-pub fn get_partners(pool: &Data<Pool>) -> Vec<Partner> {
-    match pool.get_conn() {
+pub async fn get_partners(pool: &Data<Pool>) -> Vec<Partner> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_partners_result = conn.query_map(
                 "SELECT
@@ -56,7 +56,7 @@ pub fn get_partners(pool: &Data<Pool>) -> Vec<Partner> {
                     partner.id = id;
                     return partner;
                 },
-            );
+            ).await;
             match get_partners_result {
                 Ok(get_partners) => {
                     return get_partners;

@@ -1,8 +1,8 @@
 use crate::db::utils::mysql_datetime_to_chrono_utc;
 use actix_web::web::Data;
 use chrono::prelude::*;
-use mysql::prelude::*;
-use mysql::Pool;
+use mysql_async::prelude::*;
+use mysql_async::Pool;
 use savaged_libs::player_character::armor::Armor;
 use savaged_libs::player_character::edge::Edge;
 use savaged_libs::player_character::game_data_package::{GameDataPackage, GameDataPackageLevel};
@@ -14,7 +14,7 @@ use serde::{Deserialize, Serialize};
 
 use super::books::get_books;
 
-pub fn get_game_data_package(
+pub async fn get_game_data_package(
     pool: &Data<Pool>,
     current_user_id: u32,
     updated_on: Option<DateTime<Utc>>,
@@ -35,20 +35,20 @@ pub fn get_game_data_package(
         access_developer,
         access_admin,
         all,
-    );
+    ).await;
 
     for book in &books {
         book_ids.push(book.id);
     }
 
-    let hindrances = get_hindrances(&pool, updated_on, &book_ids, all);
+    let hindrances = get_hindrances(&pool, updated_on, &book_ids, all).await;
 
-    let edges = get_edges(&pool, updated_on, &book_ids, all);
+    let edges = get_edges(&pool, updated_on, &book_ids, all).await;
 
-    let gear = get_gear(&pool, updated_on, &book_ids, all);
+    let gear = get_gear(&pool, updated_on, &book_ids, all).await;
 
-    let armor = get_armor(&pool, updated_on, &book_ids, all);
-    let weapons = get_weapons(&pool, updated_on, &book_ids, all);
+    let armor = get_armor(&pool, updated_on, &book_ids, all).await;
+    let weapons = get_weapons(&pool, updated_on, &book_ids, all).await;
     // let weapons: Vec<Weapon> = Vec::new();
     // let armor: Vec<Armor> = Vec::new();
 
@@ -80,7 +80,7 @@ pub fn get_game_data_package(
     };
 }
 
-pub fn get_game_data_table_data(
+pub async fn get_game_data_table_data(
     pool: &Data<Pool>,
     table_name: String,
     updated_on: Option<DateTime<Utc>>,
@@ -133,7 +133,7 @@ pub fn get_game_data_table_data(
     // println!("get_game_data_table_data data_query{}", data_query);
     // let data_params = params!{ "user_id" => user_id};
     // let data_params = params!{ "1" => "1"};
-    match pool.get_conn() {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_row_data_result = conn.query_map(
                 data_query,
@@ -178,7 +178,7 @@ pub fn get_game_data_table_data(
                         deleted_by: deleted_by,
                     };
                 },
-            );
+            ).await;
             match get_row_data_result {
                 Ok(get_row_data) => {
                     println!("get_game_data_table_data {} get_row_data len {}", &table_name, get_row_data.len());
@@ -217,7 +217,7 @@ pub struct RowData {
     pub updated_on: Option<DateTime<Utc>>,
 }
 
-pub fn get_hindrances(
+pub async fn get_hindrances(
     pool: &Data<Pool>,
     updated_on: Option<DateTime<Utc>>,
     book_ids: &Vec<u32>,
@@ -229,7 +229,7 @@ pub fn get_hindrances(
         updated_on,
         book_ids,
         all,
-    );
+    ).await;
 
     let mut parsed_data: Vec<Hindrance> = Vec::new();
     for row in rows {
@@ -268,14 +268,14 @@ pub fn get_hindrances(
     return parsed_data;
 }
 
-pub fn get_edges(
+pub async fn get_edges(
     pool: &Data<Pool>,
     updated_on: Option<DateTime<Utc>>,
     book_ids: &Vec<u32>,
     all: bool,
 ) -> Vec<Edge> {
     let rows =
-        get_game_data_table_data(pool, "chargen_edges".to_owned(), updated_on, book_ids, all);
+        get_game_data_table_data(pool, "chargen_edges".to_owned(), updated_on, book_ids, all).await;
 
     let mut parsed_data: Vec<Edge> = Vec::new();
     for row in rows {
@@ -314,7 +314,7 @@ pub fn get_edges(
     return parsed_data;
 }
 
-pub fn get_weapons(
+pub async fn get_weapons(
     pool: &Data<Pool>,
     updated_on: Option<DateTime<Utc>>,
     book_ids: &Vec<u32>,
@@ -326,7 +326,7 @@ pub fn get_weapons(
         updated_on,
         book_ids,
         all,
-    );
+    ).await;
 
     let mut parsed_data: Vec<Weapon> = Vec::new();
     for row in rows {
@@ -365,13 +365,13 @@ pub fn get_weapons(
     return parsed_data;
 }
 
-pub fn get_gear(
+pub async fn get_gear(
     pool: &Data<Pool>,
     updated_on: Option<DateTime<Utc>>,
     book_ids: &Vec<u32>,
     all: bool,
 ) -> Vec<Gear> {
-    let rows = get_game_data_table_data(pool, "chargen_gear".to_owned(), updated_on, book_ids, all);
+    let rows = get_game_data_table_data(pool, "chargen_gear".to_owned(), updated_on, book_ids, all).await;
 
     let mut parsed_data: Vec<Gear> = Vec::new();
     for row in rows {
@@ -410,14 +410,14 @@ pub fn get_gear(
     return parsed_data;
 }
 
-pub fn get_armor(
+pub async fn get_armor(
     pool: &Data<Pool>,
     updated_on: Option<DateTime<Utc>>,
     book_ids: &Vec<u32>,
     all: bool,
 ) -> Vec<Armor> {
     let rows =
-        get_game_data_table_data(pool, "chargen_armor".to_owned(), updated_on, book_ids, all);
+        get_game_data_table_data(pool, "chargen_armor".to_owned(), updated_on, book_ids, all).await;
 
     let mut parsed_data: Vec<Armor> = Vec::new();
     for row in rows {

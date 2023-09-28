@@ -4,7 +4,7 @@ use crate::{
 };
 use actix_session::Session;
 use actix_web::{get, post, web::Data, web::Json, HttpRequest};
-use mysql::Pool;
+use mysql_async::Pool;
 use savaged_libs::{player_character::game_data_package::GameDataPackage, save_db_row::SaveDBRow};
 
 
@@ -38,7 +38,7 @@ pub async fn api_game_data_get(
     // println!("api_key {:?}", api_key);
     // println!("login_token {:?}", login_token);
 
-    let user_option = get_remote_user(&pool, api_key, login_token, request, session);
+    let user_option = get_remote_user(&pool, api_key, login_token, request, session).await;
 
     let mut access_registered = false;
     let mut access_wildcard = false;
@@ -73,7 +73,7 @@ pub async fn api_game_data_get(
         access_developer,
         access_admin,
         false,
-    );
+    ).await;
 
     return actix_web::web::Json(game_data);
 }

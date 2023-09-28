@@ -1,10 +1,10 @@
 use actix_web::web::Data;
-use mysql::prelude::*;
-use mysql::*;
+use mysql_async::prelude::*;
+use mysql_async::*;
 use savaged_libs::announcement::{Announcement, SimpleAnnouncement};
 
-pub fn get_active_announcements(pool: &Data<Pool>) -> Vec<SimpleAnnouncement> {
-    match pool.get_conn() {
+pub async fn get_active_announcements(pool: &Data<Pool>) -> Vec<SimpleAnnouncement> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_announcements_result = conn.query_map(
                 "
@@ -22,7 +22,7 @@ pub fn get_active_announcements(pool: &Data<Pool>) -> Vec<SimpleAnnouncement> {
                     announcement.id = id;
                     return announcement;
                 },
-            );
+            ).await;
             match get_announcements_result {
                 Ok(get_announcements) => {
                     return get_announcements;
@@ -40,8 +40,8 @@ pub fn get_active_announcements(pool: &Data<Pool>) -> Vec<SimpleAnnouncement> {
     return Vec::new();
 }
 
-pub fn get_announcements(pool: &Data<Pool>) -> Vec<Announcement> {
-    match pool.get_conn() {
+pub async fn get_announcements(pool: &Data<Pool>) -> Vec<Announcement> {
+    match pool.get_conn().await {
         Ok(mut conn) => {
             let get_announcements_result = conn.query_map(
                 "SELECT
@@ -54,7 +54,7 @@ pub fn get_announcements(pool: &Data<Pool>) -> Vec<Announcement> {
                     announcement.id = id;
                     return announcement;
                 },
-            );
+            ).await;
             match get_announcements_result {
                 Ok(get_announcements) => {
                     return get_announcements;
